@@ -1,0 +1,57 @@
+---
+title: "How to use the Ebersberger cluster with a Windows machine and MobaXterm"
+author: "Dominik Stroh"
+date: "25.5.2021"
+output: pdf_document
+---
+
+```{r pre, eval=TRUE,echo=FALSE}
+setwd("C:\\Users\\domin\\Desktop\\Goethe Uni\\Computational_rna_biology\\cluster_tutorial")
+```
+
+
+# Introduction
+This is a tutorial how to use the Ebersberger computing cluster from a windows machine.
+
+# Requirements
+In order to access the cluster you will need an account, your password and a private key file.
+Furthermore you will need to install "MobaXterm" (https://mobaxterm.mobatek.net/download-home-edition.html) to connect to the cluster from a windows machine.
+
+# Getting started
+After satisfying the requirements and starting MobaXterm you will need to start a new session. To do so, click on "Session" in the top left corner (Step 1). Now choose "SSH" in the pop-up (Step 3) and enter the IP address (141.2.46.150) under "Basic SSH setting" -> "Remote host *". Then click the checkbox "Specify username" and enter your username in the box behind. The corresponding port should be "22" (Step 3). After this, click on "Advanced SSH settings" and check the box for "Use private key". At this point you will need to click on the document at the end of the corresponding box and choose the private key file ("openssh") that was send to you (Step 4). To finalise your session, click on "OK" in the bottom-middle (Step 5). If everything was executed in the right way, you should see a new session in the folder "User sessions" named "141.2.46.150 ([YOUR USERNAME])" (Step 6).
+
+# Graphical tutorial
+![Graphical tutorial - MobaXterm](C:\\Users\\domin\\Desktop\\Goethe Uni\\Computational_rna_biology\\cluster_tutorial\\graphical_tutorial_1.png)
+
+# Starting the session
+To connect to the cluster, double-click the created user session. Now a terminal will open, asking you for the "Passphrase for OpenSSH private key:". Go to the password file that was send to you and copy the password. Back in MobaXterm you can paste the password with a right-click in the console. You will not see what you have entered, but you will need to submit your password with pressing "Enter" on your keyboard. If everything went right, you should now be connected to the clusters gateway.
+
+# The cluster
+As you are now connected to the clusters gateway, you will need to further connect to a workstation. To do so enter "ssh [NAME OF WORKSTATION]". You can find the names of the workstations with the "sinfo" command (the workstations are named after "The Big Bang Theory" characters). Congratulations your are now connected to a workstation on the cluster! You can now interact with the cluster via Bash commands.
+
+## Your home directory
+Under the path "/home/[YOUR USERNAME]" you will find your home directory. This is the place where you should install your conda environment. Be careful not to put large files here, as it is frequently backed-up. Only your most important stuff should go here.
+
+## Shared projects
+For large files navigate to "/share/project/zarnack/". Here you can create a folder for your datasets.
+
+# Installing conda
+Conda is a python environment on the cluster you need to install in order to use python packages (install this into your home directory!). To do so use the command:
+
+```{bash conda_1, eval=FALSE,echo=TRUE}
+cd /home/[YOUR USERNAME]
+wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
+bash Miniconda3-latest-Linux-x86_64.sh
+```
+
+These commands will help you while working with Conda:
+
+```{bash conda_2, eval=FALSE,echo=TRUE}
+conda update conda #to update conda
+conda config --add channels defaults
+conda config --add channels bioconda
+conda config --add channels conda-forge
+conda create -n bioinfo python=3.9 #to create an environment
+conda activate bioinfo #to activate your environment
+conda install -n bioinfo NumPy #to install NumPy or other packages
+```
