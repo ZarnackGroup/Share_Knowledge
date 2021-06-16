@@ -1,0 +1,67 @@
+---
+title: "How to efficiently use the cluster computing power"
+author: "Dominik Stroh"
+date: "25.5.2021"
+output: pdf_document
+---
+
+```{r pre, eval=TRUE,echo=FALSE}
+setwd("C:\\Users\\domin\\Desktop\\Goethe Uni\\Computational_rna_biology\\cluster_tutorial")
+```
+
+# Introduction
+In contrast to small computing tasks like downloading packages and inspection of datasets via head/tail, computing intensive operations like STAR, htseq-count and majiq should not be performed on a single workstation but on the whole cluster. For these tasks, the cluster uses the Slurm workload manager. In principle, you create a file where you tell the cluster what to do (in Bash) and submit this to the cluster as a job. It then computes the commands without your supervision and tells you when it is finished.
+
+# Jobs
+Jobs are a way to manage many computing requests and optimally utilise the computing power.
+
+## Creating a job
+Create a file named job.sh
+
+```{bash creating, eval=FALSE}
+cd [DESIRED DIRECTORY]
+touch job.sh
+```
+
+The file shoud contain the following header before your code:
+
+```{bash header, eval=FALSE}
+#!/bin/bash
+#SBATCH --partition=all
+#SBATCH --cpus-per-task=4
+#SBATCH --mem-per-cpu=16gb
+#SBATCH --job-name=[NAME OF YOUR JOB]
+#SBATCH --array=1
+#SBATCH --output=[NAME OF YOUR JOB].out
+#SBATCH --error=[NAME OF YOUR JOB].err
+#SBATCH --mail-user=[YOUR EMAIL ADRESS]
+#SBATCH --mail-type=ALL
+
+#Your code should start after this header:
+[YOUR CODE]
+```
+
+
+## Submitting a job
+In order to submit a job to the cluster use the following command:
+
+```{bash submitting, eval=FALSE}
+cd [DIRECTORY OF THE JOB FILE]
+sbatch job.sh
+```
+
+## Progression of a job
+When you want to see whether your job has been accepted, which machine computes it or how the workload of the cluister is use the following command:
+
+```{bash progression, eval=FALSE}
+squeue
+```
+
+## Cancelling a job
+When you realise, something went wrong with your code (which you should double-check beforehand!), you can cancel a running job with the command:
+
+```{bash cancelling, eval=FALSE}
+scancel [YOUR JOBNUMBER]
+```
+
+
