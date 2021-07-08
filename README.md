@@ -1,7 +1,7 @@
 # FirstSteps
 Infos for students
 
-There a solutions to most problems on StackOverflow and the Biostar Forum.
+There are solutions to most problems on StackOverflow and the Biostar Forum.
 
 If you are stuck you can also always post in our slack questions channel!
 
