@@ -18,13 +18,14 @@ From this we can load for example the REACTOME pathway information:
 reactome_geneset <- msigdb_gsets("Homo sapiens", "C2", "CP:REACTOME")
 ```
 
-Now we want to know how many of the genes we found to be bound, belong to which of the reactome pathways. For this, we make a list of the names of all bound genes and test for the overlap:
+Now we want to know how many of the genes we found to be bound, belong to which of the reactome pathways. For this, we make a list of the names of all bound genes. We also need a background against which we test, wheter a certain term is enriched. The background should contain all genes, that could have been detected as a hit. This usually means all genes, that where expressed in you experimental system. For example if you look at differental expression with DEseq, you could choose all genes with a baseMean > 0 oder > 1 as expressed genes. Then hypR test for the overlap of the genes belonging to each pathway or GO term considering only genes that were present in the background:
 
 ```{r reactome_overlap, include=T, eval = F}
 # get names of bound genes
 bound_gene_names <- hit_genes$gene_name
+background <- expressed_genes$gene_name
 # test enrichment of genes in reactome pathways
-reactome_hyp <- hypeR(bound_gene_names, reactome_geneset, test="hypergeometric", fdr=0.05)
+reactome_hyp <- hypeR(bound_gene_names, reactome_geneset, test="hypergeometric", fdr=0.05, background=background)
 reactome_hyp
 # Plot dots plot
 reactome_dot <- hyp_dots(reactome_hyp)+
@@ -32,7 +33,7 @@ reactome_dot <- hyp_dots(reactome_hyp)+
 reactome_dot
 ```
 
-You can also get a data.frame of the hypR results and then make your own plots in ggplot.
+You can also get a data.frame of the hypR results and then make your own plots in ggplot, extract terms of interest or choose differnet p-value cutoffs.
 
 ```{r reactome_overlap, include=T, eval = F}
 
