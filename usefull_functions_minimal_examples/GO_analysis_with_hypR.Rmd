@@ -28,7 +28,7 @@ background <- expressed_genes$gene_name
 reactome_hyp <- hypeR(bound_gene_names, reactome_geneset, test="hypergeometric", fdr=0.05, background=background)
 reactome_hyp
 # Plot dots plot
-reactome_dot <- hyp_dots(reactome_hyp)+
+reactome_dot <- hyp_dots(reactome_hyp, top = 20)+ # with top you can set the number of top terms to show
   ggtitle("bla")
 reactome_dot
 ```
