@@ -1,0 +1,154 @@
+---
+title: "Quarto template"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+author:
+  - name: Your Name
+format: 
+  html:
+    code-fold: true
+    code-overflow: scroll
+    code-summary: "Show code"
+    code-line-numbers: true
+    
+    toc: true
+    toc-depth: 3
+    toc-location: left
+    toc-expand: false
+    number-sections: true
+    
+    theme: sandstone
+    fontsize: 11pt
+    linestretch: 1.5
+        
+    fig-format: svg
+    cap-location: margin
+    crossref:
+      fig-title: Fig
+    
+    embed-resources: true
+    link-external-newwindow: true
+    smooth-scroll: true
+    
+    execute:
+      echo: true
+      warning: true
+---
+
+```{r setup}
+library(kableExtra)
+library(ggplot2)
+```
+
+# Tabs
+
+::: {.panel-tabset}
+
+You can create tabs with `::: {.panel-tabset}`.
+
+All following subheadings will open a new tab until a manual escape with `:::`.
+
+## Tab 1
+
+This is a tab ...
+
+## Tab 2
+
+... and this is another tab.
+
+:::
+
+# Automated tabs
+
+You can also automate tabs by creating the heading in a loop.
+
+Make sure to set the chunk option `results = "asis"`.
+
+::: {.panel-tabset}
+
+```{r}
+#| results: "asis"
+
+tab_titles <- paste(rep("Tab",5), 1:5)
+plot_names <- paste0(rep("fig",5), 1:5, ".png")
+
+for(i in 1:length(tab_titles)){
+  cat("\n##", tab_titles[[i]], "\n")
+  cat(paste0("![](", plot_names[[i]], ") \n "))
+}
+```
+
+:::
+
+# Tables
+
+## Images in tables
+
+You can add **images** to tables using `format = "markdown"`, but **this breaks most *kableExtra* functions**:
+
+```{r}
+#| message: false
+#| warning: false
+
+# Create & save plots
+plot <- ggplot(mtcars, aes(x=as.factor(cyl), y=mpg)) + 
+    geom_boxplot(fill=c("royalblue", "darkorange", "seagreen"), alpha=0.5) + 
+    theme_void()
+ggsave("plot1.svg")
+
+plot2 <- ggplot(ToothGrowth, aes(x=factor(dose), y=len, fill=factor(dose))) +
+  geom_violin(trim = F, show.legend = F)+
+  scale_fill_manual(values=c("royalblue", "darkorange", "seagreen"))+
+  theme_void()
+ggsave("plot2.svg")
+
+# Create table from data frame
+df <- data.frame("Image 1" = c("Here's an image", "![](8-CATGCTGGGA.png){width=20%}"),
+                 "Image 2" = c("... and another one", "![](RTGATKGATGR.png){width=20%}"),
+                 "Plot 1" = c("Here's a plot", "![](plot1.svg){width=30%}"),
+                 "Plot 2" = c("... and another one", "![](plot2.svg){width=30%}"),
+                 check.names = F) %>% t
+
+kable(df, format = "markdown") %>% 
+  kable_styling("striped")
+```
+
+Here's the same table without images, but *kableExtra* is now working as intended:
+
+```{r}
+df <- data.frame("Image 1" = c("Here's an image", "img1"),
+                 "Image 2" = c("... and another one", "img2"),
+                 "Plot 1" = c("Here's a plot", "plot1"),
+                 "Plot 2" = c("... and another one", "plot2"),
+                 check.names = F) %>% t
+
+kable(df) %>% 
+  kable_styling("striped") %>%
+  pack_rows("Images", 1, 2) %>% 
+  pack_rows("Plots", 3, 4)
+```
+
+## Colored tables
+
+You can add **packed rows**, **colors** and **headers** like this, for example to accompany plots:
+
+```{r}
+# Create plot
+plot <- ggplot(ToothGrowth, aes(x=factor(dose), y=len, fill=factor(dose))) +
+  geom_violin(trim=F)+
+  scale_fill_manual(values=c("royalblue", "darkorange", "seagreen"))
+print(plot)
+
+# Create table from data frame
+df <- data.frame("Occurence of X in set" = c(rep(c("0", "0 %"),3)),
+                 "Occurence of Y in set" = c(rep(c("0", "0 %"),3)), 
+                 check.names = F)  %>% t
+colnames(df) <- c("Counts", "Frequency", "Counts", "Frequency", "Counts", "Frequency")
+
+kable(df) %>% 
+  kable_styling("striped") %>%
+  column_spec(1, border_right = T) %>% 
+  column_spec(2:3, background = alpha(unique(ggplot_build(plot)$data[[1]]["fill"])[[1]][1],0.5)) %>%
+  column_spec(4:5, background = alpha(unique(ggplot_build(plot)$data[[1]]["fill"])[[1]][2],0.5)) %>%
+  column_spec(6:7, background = alpha(unique(ggplot_build(plot)$data[[1]]["fill"])[[1]][3],0.5)) %>%
+  add_header_above(c(" " = 1, "Cat 1" = 2, "Cat 2" = 2, "Cat 3" = 2), escape=F)
+```
