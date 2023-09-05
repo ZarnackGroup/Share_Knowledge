@@ -8,6 +8,7 @@ format:
     code-fold: true
     code-overflow: scroll
     code-summary: "Show code"
+    code-tools: true
     code-line-numbers: true
     
     toc: true
