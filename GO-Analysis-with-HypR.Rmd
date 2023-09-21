@@ -1,0 +1,41 @@
+---
+title: "GO-Analysis-with-HypeR"
+output: html_document
+---
+## Geneontology analysis
+
+HypeR strores te information of diverent data bases for several organisms:
+```{r hypeR_datasets, include=T, eval = F}
+library(hypeR)
+# hypeR strores te information of diverent data bases for several organisms
+msigdb_info()
+```
+
+From this we can load for example the REACTOME pathway information:
+
+```{r load_REACTOME_geneset, include=T, eval = F}
+# get pathway info from reactome
+reactome_geneset <- msigdb_gsets("Homo sapiens", "C2", "CP:REACTOME")
+```
+
+Now we want to know how many of the genes we found to be bound, belong to which of the reactome pathways. For this, we make a list of the names of all bound genes and test for the overlap:
+
+```{r reactome_overlap, include=T, eval = F}
+# get names of bound genes
+bound_gene_names <- hit_genes$gene_name
+
+# test enrichment of genes in reactome pathways
+reactome_hyp <- hypeR(bound_gene_names, reactome_geneset, test="hypergeometric", fdr=0.05)
+
+reactome_hyp
+
+# Plot dots plot
+reactome_dot <- hyp_dots(reactome_hyp)+
+  ggtitle("bla")
+
+reactome_dot
+
+```
+
+**Exercise: GO termes**
+Another often used data base is Geneontology. Geneontology stores three types of information: Cellular Components, Molecular Functions and biological progesses. All three are also availabe as genesets from hypeR (See msigdb_info()). Make the corrisponding dotplots for these genesets.
