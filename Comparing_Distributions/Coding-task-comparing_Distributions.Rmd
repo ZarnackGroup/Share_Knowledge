@@ -1,0 +1,185 @@
+---
+title: "Coding task 21.01.2021: Comapring distributions"
+output:
+  html_document: 
+    toc: true
+    toc_depth: 2
+    number_sections: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+# Example data & libraries
+```{r}
+# install.packages("rattle.data")
+# install.packages("ggridges")
+library(rattle.data)
+library(ggplot2)
+library(ggpubr)
+
+wine = wine
+
+```
+
+# Different ways to visualise distributions
+
+## Plot the distribution of the wine color for the three different wine types
+- Try to come up with different way to plot this
+- Which is you favorite and why?
+
+\newpage
+## Here are some more, try them out
+
+### geom_density(), ggridges::geom_density_ridges(), geom_histogram()
+- Try out different bins for the histogram
+- What is the difference of a histogram to a density plot?
+
+```{r}
+ggplot(wine, aes(x =Color, color = Type))+
+  geom_density()
+
+ggplot(wine, aes(x =Color))+
+  geom_histogram(aes( fill = Type))
+
+ggplot(wine, aes(x =Color))+
+  geom_histogram(aes( fill = Type), position = "dodge")
+
+ggplot(wine, aes(x =Color))+
+  geom_histogram(aes(fill = Type), bins = 50)
+
+ggplot(wine, aes(x =Color))+
+  geom_histogram(aes(fill = Type), bins = 2)
+
+ggplot(wine, aes(x =Color, y = Type))+
+  ggridges::geom_density_ridges()
+
+```
+
+
+### geom_boxplot(), geom_jitter(), geom_violin()
+- How do these plots relate to a classical density plot?
+- What information do you lose in which plot?
+- You can also combine these three or two of them
+
+```{r}
+
+ggplot(wine, aes(x =Type, y = Color))+
+  geom_boxplot()
+
+ggplot(wine, aes(x =Type, y = Color))+
+  geom_jitter()
+
+ggplot(wine, aes(x =Type, y = Color))+
+  geom_boxplot()+
+  geom_jitter()
+
+ggplot(wine, aes(x =Type, y = Color))+
+  geom_violin()
+
+ggplot(wine, aes(x =Type, y = Color))+
+  geom_violin()+
+  geom_boxplot()
+
+ggplot(wine, aes(x =Type, y = Color))+
+  geom_violin()+
+  geom_jitter()
+
+```
+
+
+### stat_ecdf()
+- What does this plot show you?
+```{r}
+ggplot(wine, aes(x =Color, fill = Type))+
+  stat_ecdf()
+
+
+```
+
+# Statistical tests to compare distributions (of continous values)
+## What is a p-value? How would you explain it?
+## compare_means(), stat_compare_means()
+
+- Compare_means() statisticaly compares two values
+- stat_compare_means() can be added directly to a ggplot with plot + stat_compare_means() and adds the p-values to the plot
+
+### make a box or violin plot from above but only comparing wines of type 1 and 2 and test both functions
+
+- Which statistical test is used by default? 
+- How do the p-values change, if you use method = "t-test" 
+- When would you use "t-test" as method instead? 
+- Use ggqqplot() and the shapiro.test() to decide if you could use a t-test here
+
+```{r}
+
+compare_means(Color ~ Type, data=wine[wine$Type !=3,] )
+
+# ! attention 
+# compare_means(Type ~ Color, data=wine[wine$Type !=3,] ) does not work x~y, x must be numeric y is the grouping
+
+ggplot(wine[wine$Type !=2,], aes(x =Type, y = Color))+
+  geom_boxplot()+
+  stat_compare_means()+
+  ggtitle( "The standard test for two groups is a Wilcoxon test")
+
+ggplot(wine[wine$Type !=2,], aes(x =Type, y = Color))+
+  geom_boxplot()+
+  stat_compare_means(method = "t.test")+
+  ggtitle("T-test sometimes give other p-values as they assume normal distributions", subtitle = "We need to test for normality if we want to use a t-test")
+
+
+##########
+# test for normality
+#########
+shapiro.test(wine[wine$Type==1,]$Color)
+shapiro.test(wine[wine$Type==2,]$Color)
+shapiro.test(wine[wine$Type==3,]$Color)
+shapiro.test(wine$Color)
+# Null hypothesis: the vector is normaly distributed, p-value: gives you the probablility that the vector was normally distributed
+# The smaller the p-value the smaller the probability of a normal distribution
+# here all vectors are likely non-normal distributed
+
+ggqqplot(wine[wine$Type==1,]$Color)+
+  ggtitle("this plot shows a theoretical normal distribution and our values in it")
+ggqqplot(wine[wine$Type==2,]$Color)
+ggqqplot(wine[wine$Type==3,]$Color)
+
+```
+
+
+
+
+## Pairwise comparisons for three groups
+- If you now make a box/violin plot with all three types of wine, what is the default test? Why is the default different now?
+- Instead you can do three pairwise comparisons:
+- make a list of your comparisons: my_comparisons <- list( c("3", "1"), c("1", "2"), c("3", "2") )
+- use stat_compare_means(comparisons = my_comparisons)
+
+```{r}
+ggplot(wine, aes(x =Type, y = Color))+
+  geom_boxplot()+
+  stat_compare_means()+
+  ggtitle("If we compare more then two groups the default test is a Kruksal-Walis test, \n if normal distributed we could use a anova test")
+
+my_comparisons <- list( c("3", "1"), c("1", "2"), c("3", "2") )
+
+ggplot(wine, aes(x =Type, y = Color))+
+  geom_boxplot()+
+  stat_compare_means(comparisons = my_comparisons)+
+  ggtitle("We can compare pairs of to groups instead again with Wilcoxon ")
+
+ggplot(wine, aes(x =Type, y = Color))+
+  geom_boxplot()+
+  stat_compare_means(comparisons = my_comparisons, method = "t.test")+
+  ggtitle("Or with the t.test if we have a normal distribution \n (we saw before that thats not the case here)")
+
+
+```
+
+
+
+
+

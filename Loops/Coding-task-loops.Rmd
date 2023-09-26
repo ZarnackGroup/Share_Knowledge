@@ -1,0 +1,357 @@
+---
+title: "Coding task 12.03.21 - Looping over lists"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+# Lists in R
+- in lists you can sum up all other types of data in R
+- e.g a list of data frames, a list of vectors, a list of lists
+- the list items do not have to have the same dimensions
+- very usefull if you have two similar data sets, that you want to treat the same way (e.g two conditions/samples)
+```{r}
+library(purrr)
+library(dplyr)
+
+# example data
+data("beavers")
+data("airquality")
+data("mdeaths")
+
+# we have data from two beavers
+# beaver1
+# beaver2
+
+# and put both together in a list
+beavers <- list(beaver1, beaver2)
+
+# you can give each item within a list a name
+names(beavers)<- c("Beaver1", "Beaver2")
+
+# you can access list items via [[]]
+head(beavers[[1]])
+
+# or via the name
+head(beavers$Beaver2)
+
+```
+
+**Task 1:** Build a List containing the beaver list and the airquality data set and maybe a random word of you choice.
+
+```{r}
+l <- list(beavers, airquality, "Hello List")
+names(l)<- c("A", "B", "C")
+
+```
+
+
+
+# Loops in R
+If you want to loop over lists it is of course helpfull is they have a similar layout.
+Here are three ways to loop over a list:
+
+## For Loops
+The easiest loop in R is s for loop. (However, for loops are often the most coding intensive and slowest type of loops.) Here is an example on how to use a for loop on a data set
+```{r}
+# initialise a variable, where you want to save the results from the loop
+mean_temp <- vector()
+
+for(i in 1:length(beavers)) # here you specify the loop variable and how often the loop is run (from 1 to the length of the list = 2)
+  {
+  mean_temp[i] <- mean(beavers[[i]]$temp)
+}
+
+
+# note: of course with two you could still calcualte it seperatly, but you might have 10 beavers :)
+
+
+```
+
+## Apply, sapply, lapply
+These are base R functionalities that are faster and less text intensive then for loops. Their differ in thei output type:
+- lapply return a list
+- sapply returns a vector 
+- apply returns a dataframe
+```{r}
+
+# lapply, sapply
+# takes as input a list and a function of what to do with each list element, here the function variable x stands for the first listentry in the first round, the second in the second and so on
+mean_temp2_list <- lapply(beavers, function(x) mean(x$temp))
+mean_temp2_vector <- sapply(beavers, function(x) mean(x$temp))
+
+# apply cannot be used directly on the list but needs a data frame
+# but you can loop over all columns at the same time
+# you can specify 1 for apply this function rowwise or 2 for column wise
+all_means_beaver1 <- apply(beaver1, 2, mean)
+
+# you can combine laply an apply to get loop over all columns of all list menbers
+all_mean_both_beavers <- lapply(beavers, apply,2, mean)
+
+```
+
+## purrr::map
+This is a tidyverse alternative to loop over lists.
+```{r eval=F}
+library(purrr)
+
+# map marks the function by the ~ sign and within the function the variable is always caled .x
+map(beavers, ~mean(.x$temp)) 
+beavers %>% map( ~mean(.x$temp)) 
+
+# you can again change what kind of output you want to get
+# a numeric vector
+map_dbl(beavers, ~mean(.x$temp))
+
+# a character vector
+map_chr(beavers, ~mean(.x$temp))
+
+# map allows you to use dplyr within each loop
+library(dplyr) ## You made a nice task on dplyr if you are not familiar with it, it might be worth looking at
+map(beavers, ~mutate(.x, hour = substring(as.character(time),1,1)))
+
+# and to use pipes within the loop
+map(beavers, ~mutate(.x, hour = substring(as.character(time),1,1)) %>% 
+     arrange(hour))
+
+```
+
+## Try to solve these tasks with all three methods
+
+**Task 2** Calucalte the sd of the 2 columns of the 2 dataframes.
+```{r}
+###################
+# for loop
+#################
+sd_temp <- vector()
+
+for(i in 1:length(beavers)) 
+  {
+  sd_temp[i] <- sd(beavers[[i]]$temp)
+}
+
+sd_temp
+
+################
+# sapply
+################
+sd_temp2 <- lapply(beavers, function(x) sd(x$temp))
+sd_temp2
+
+#################
+# map
+#################
+sd_temp3 <- map_dbl(beavers, ~sd(.x$temp))
+sd_temp3 
+
+```
+
+**Task 2b** Add up the time and the temperature.
+```{r}
+###################
+# for loop
+#################
+add <- vector()
+
+for(i in 1:length(beavers)) 
+  {
+  add[i] <- beavers[[i]]$temp + beavers[[i]]$time
+}
+
+add
+
+################
+# sapply
+################
+add2 <- lapply(beavers, function(x) x$temp = x$time)
+add2
+
+#################
+# map
+#################
+add3 <- map(beavers, ~ (.x$temp + .x$time))
+add3
+
+add4 <- map(beavers, ~.x %>% mutate(., add = temp + time))
+add4 %>% map(~head(.x))
+
+
+
+
+```
+
+
+**Task 3** Calcluate the rowwise mean (athough its meaningless here).
+
+```{r}
+##############
+# for loops
+############
+rowmean <- list()
+
+for(i in 1:length(beavers))  {
+      rowmean[[i]] <- list()
+  for(j in 1:nrow(beavers[[i]])){
+  rowmean[[i]][[j]] <- mean(as.numeric(beavers[[i]][j,]))
+}}
+
+rowmean %>% map(~head(.x))
+
+
+
+rowmean2 <- list()
+for(i in 1:length(beavers)) {
+  rowmean2[[i]] <- rowMeans(beavers[[i]])
+}
+
+rowmean2 %>% map(~head(.x))
+
+##############
+# apply
+############
+rowmean3 <-lapply(beavers, apply, 1, mean)
+rowmean3 %>% map(~head(.x))
+
+
+
+################
+# map
+##############
+
+rowmean4 <- beavers %>% map(~mutate(.x, means = rowMeans(.)))
+rowmean4 %>% map(~head(.x))
+
+# and a somewhat overcomplicated solution: pmap
+
+rowmean5 <- beavers %>% map( ~.x%>% 
+  mutate(mean_all = pmap_dbl(., function(...) mean(c(...)))))
+
+#  If we want to make use of more than 2 variables (or lists), we can use the pmap function. We need to use ... rather than specifying the columns/lists separately. In the end, we combine all the variables with c()
+
+rowmean5 %>% map(~head(.x))
+
+
+
+```
+
+
+## For these tasks choose your favorite method
+
+**Task 4** Caluclate the mean temp hourwise (900-950,1000-1050 etc.)
+```{r}
+
+# get hour
+hourwise_mean_temp <- beaver1 %>% mutate(hour = substring(time,1,1))
+head(hourwise_mean_temp) 
+
+# group by hour and clac mean
+hourwise_mean_temp <- beaver1 %>% mutate(hour = substring(time,1,1)) %>%
+  group_by(hour)%>%
+  summarise(hour_temp <- mean(temp), .groups = "keep")
+head(hourwise_mean_temp) 
+
+
+# with map loop
+hourwise_mean_temp <- beavers %>% map(~.x %>% mutate(hour = substring(time,1,1)) %>%
+  group_by(hour)%>%
+  summarise(hour_temp = mean(temp), .groups = "keep"))
+hourwise_mean_temp %>% map(~head(.x))
+
+
+# with lapply
+hourwise_mean_temp2 <- lapply(beavers, function(x) x %>% mutate(hour = substring(time,1,1)) %>%
+  group_by(hour)%>%
+  summarise(hour_temp = mean(temp), .groups = "keep") )
+
+hourwise_mean_temp2 %>% map(~head(.x))
+
+```
+
+**Task 5** Make a new list that contains the beaver data of both beavers only for even days
+```{r}
+even_beavers <- beavers %>% map(~.x[.x$day %% 2 == 0,])
+
+beavers %>% map(~table(.x$day))
+even_beavers %>% map(~table(.x$day))
+
+```
+
+**Task 6** Look at the starwars data set column films. This is a list in da data frame! Lets say you want to look at the distribution of skin color and haircolor for the different films. Can you make a list containing one element per film with all characters? How are the distributions filmwise? Make some nice plots (maybe in a loop).
+```{r}
+library(ggplot2)
+head(dplyr::starwars)
+
+# "cheating" with nice tidyverse functions
+head(starwars$films)
+starwars_by_films <- starwars %>% tidyr::unnest(films) %>% split(., .$films)
+
+
+map(starwars_by_films, ~ggplot(.x, aes(x=skin_color))+
+      geom_bar())
+
+map(starwars_by_films, ~ggplot(.x, aes(x=hair_color))+
+      geom_bar())
+
+
+```
+
+## Benchmark the different options
+
+**Task 7** There is a function microbenchmark from the package microbenchmark, which allows you to compare the efficency of different functions.
+Take one of the tasks before and benchmark the three loop types. Which was the best solution?
+
+
+```{r}
+################
+# Microbenchmark Task 3
+#################
+
+microbenchmark::microbenchmark(for(i in 1:length(beavers))  {
+      rowmean[[i]] <- list()
+  for(j in 1:nrow(beavers[[i]])){
+  rowmean[[i]][[j]] <- mean(as.numeric(beavers[[i]][j,]))
+}},
+
+for(i in 1:length(beavers)) {rowmean2[[i]] <- rowMeans(beavers[[i]])},
+
+lapply(beavers, apply, 1, mean), 
+
+beavers %>% map(~mutate(.x, means = rowMeans(.))),
+
+beavers %>% map( ~.x%>% 
+  mutate(mean_all = pmap_dbl(., function(...) mean(c(...)))))
+
+                             )
+
+
+
+####################
+# Microbenchmark Task 4
+#####################
+
+microbenchmark::microbenchmark(
+beavers %>% map(~.x %>% mutate(hour = substring(time,1,1)) %>%
+  group_by(hour)%>%
+  summarise(hour_temp = mean(temp), .groups = "keep")),
+
+lapply(beavers, function(x) x %>% mutate(hour = substring(time,1,1)) %>%
+  group_by(hour)%>%
+  summarise(hour_temp = mean(temp), .groups = "keep") ))
+
+
+
+
+
+
+
+```
+
+
+
+
+
