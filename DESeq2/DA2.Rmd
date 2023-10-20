@@ -1,0 +1,186 @@
+---
+title: "Differential Analysis part2"
+author: "You Zhou"
+date: "`r format(Sys.time(), '%B %e, %Y')`"
+output:
+  bookdown::html_document2:
+    fig_caption: yes
+    number_sections: no
+    theme: cerulean
+    toc: yes
+    toc_depth: 3
+  bookdown::pdf_document2:
+    fig_caption: yes
+    number_sections: no
+    toc: yes
+    toc_depth: 3
+  html_notebook:
+    fig_caption: yes
+    number_sections: no
+    theme: cerulean
+    toc: yes
+    toc_depth: 3
+  html_document:
+    df_print: paged
+    toc: yes
+    toc_depth: '3'
+graphics: yes
+header-includes:
+- \makeatletter\renewcommand*{\fps@figure}{h}\makeatother
+- \usepackage{placeins}
+geometry: margin=1in
+fontsize: 18pt
+---
+
+```{r knitr off, echo=FALSE, message=FALSE,cache=FALSE, results="hide", render=FALSE ,warning=FALSE}
+knitr::opts_chunk$set(echo=FALSE, error=FALSE, warning=FALSE,message=FALSE)
+```
+
+# Introduction
+
+Differential expression analysis means taking the normalized read count data 
+and performing statistical analysis to discover quantitative changes in 
+expression levels between experimental groups. For example, we use statistical 
+testing to decide whether, for a given gene, an observed difference in read 
+counts is significant, that is, whether it is greater than what would be 
+expected just due to natural random variation.  
+  
+For a normal workflow, we need to first map the reads. Then we will do the counting step. 
+After the counting step we can do the differential gene expression analysis with the tool 
+like `edgeR` or `DESeq2`. 
+  
+This coding tasks is the follow-up to the [coding task on 04.03.2021](https://github.com/ZarnackGroup/Zarnack_CodingTasks/tree/master/2021_03_04_DESeq2%20part%201).
+In this coding task, we will again focus on the downstream analysis for the RNAseq data. For solving the 
+questions in this coding task, the following packages are recommended.
+
+```{r echo=TRUE, error=FALSE, warning=FALSE,message=FALSE}
+## Load the suggested packages
+library(DESeq2)
+library(dplyr)
+library(ggplot2)
+library(biomaRt)
+library(clusterProfiler)
+```
+
+---
+
+# Tasks
+For solving the following questions, you need to first load the data set `test_DESeq_data.rds`. Moreover, 
+this data is a `DESeqDataSet`.
+
+```{r echo=TRUE}
+dds <- readRDS("/Users/codezy/Desktop/Project/coding task/04.03.2021 Differential Analysis/rds/test_DESeq_data.rds")
+```
+
+## Task1
+How can we get the normalized read counts from a `DESeqDataSet`?
+
+```{r echo=TRUE}
+norm_df <- counts(dds, normalized=TRUE)
+```
+
+## Task2
+Making the normalized counts plot for gene `ENSMUSG00000082365.2` and `ENSMUSG00000002233.13`.
+
+```{r echo=TRUE}
+plotCounts(dds, gene = "ENSMUSG00000082365.2", normalized = TRUE)
+```
+
+```{r echo=TRUE}
+plotCounts(dds, gene = "ENSMUSG00000002233.13", normalized = TRUE)
+```
+
+## Task3
+How many genes are regulated upon the KO treatment, and the log2 fold change are significantly 
+greater than 0.5 or smaller than -0.5? (Please use the padj <= 0.05 for the filtering.)
+
+```{r echo=TRUE}
+## The altHypothesis would be useful here
+res_greater <- results(dds, contrast=c("condition","KO","WT"), lfcThreshold=0.2, 
+                       altHypothesis="greaterAbs")
+sig_res_greater <- res_greater[which(res_greater$padj <= 0.05),] %>% as.data.frame()
+```
+
+## Task4
+Using the package [`bioMart`](https://bioconductor.org/packages/release/bioc/html/biomaRt.html) to get 
+the `gene names`, `entrez_id` and `gene_id` for both the significantly up and down regulated genes in the 
+`Task3`.    
+   
+**Tips**: The species of this data set is mouse (Mus musculus).
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+## for using the bioMart we need to first set the useMart
+mart <- useMart("ENSEMBL_MART_ENSEMBL", dataset = "mmusculus_gene_ensembl",
+        host = "sep2019.archive.ensembl.org", path = "/biomart/martservice",
+        archive = FALSE)
+
+geneids_up <- substr(rownames(sig_res_greater[sig_res_greater$log2FoldChange > 0,]), 1, 18)
+geneids_down <- substr(rownames(sig_res_greater[sig_res_greater$log2FoldChange < 0,]), 1, 18)
+all_genes <- substr(rownames(res_greater), 1, 18)
+
+df_id_sig_up <- getBM(attributes = c('ensembl_gene_id', 'external_gene_name', 'entrezgene_id'),
+                      filters = 'ensembl_gene_id', values = geneids_up, mart = mart)
+df_id_sig_down <- getBM(attributes = c('ensembl_gene_id', 'external_gene_name', 'entrezgene_id'),
+                        filters = 'ensembl_gene_id', values = geneids_down, mart = mart)
+df_all_genes <- getBM(attributes = c('ensembl_gene_id', 'external_gene_name', 'entrezgene_id'),
+                filters = 'ensembl_gene_id', values = all_genes, mart = mart)
+```
+
+## Task5
+Do these up and down-regulated genes enrich in any specific `Biological Process` (BP)?    
+    
+**Tips**: The package 
+[`clusterProfiler`](https://bioconductor.org/packages/release/bioc/html/clusterProfiler.html) may help.
+
+```{r echo=TRUE}
+l <- list(up_genes = df_id_sig_up$entrezgene_id, 
+          down_genes = df_id_sig_down$entrezgene_id) 
+x <- compareCluster(l, OrgDb='org.Mm.eg.db',fun="enrichGO",
+                    pvalueCutoff = 0.05, ont="BP", readable=T, 
+                    universe = df_all_genes$entrezgene_id)
+
+library(stringr)
+clusterProfiler::dotplot(x, showCategory=12, font.size = 8) + 
+    ggtitle("Top BP terms") +
+    scale_y_discrete(labels=function(x) str_wrap(x, width=40)) + 
+    theme(plot.title = element_text(size=10))
+```
+
+## Task6
+Making a emapplot for the regulated genes.    
+   
+**Tips**: function `emapplot` can make this type of plot.
+
+```{r figx, eval=TRUE, fig.height=6, fig.pos="h", fig.width=10, message=FALSE, warning=FALSE, include=TRUE, echo=TRUE}
+emapplot(x)
+```
+
+## Task7
+Finding out the KEGG pathway enrichment for the up and down regulated genes and visualizing the result. 
+
+```{r figx2, fig.height=6, fig.pos="h", fig.width=10, message=FALSE, warning=FALSE, echo=TRUE}
+kegg_up <- enrichKEGG(gene         = df_id_sig_up$entrezgene_id,
+                      organism     = 'mmu',
+                      pvalueCutoff = 0.05)
+
+x2 <- compareCluster(l, fun = "enrichKEGG", organism = 'mmu',
+                     pvalueCutoff = 0.05, 
+                     universe = df_all_genes$entrezgene_id)
+
+emapplot(x2, layout = "kk")
+```
+
+```{r figx3, eval=TRUE, fig.height=4, fig.pos="h", fig.width=10, message=FALSE, warning=FALSE, include=TRUE, echo=TRUE}
+dotplot(kegg_up)
+```
+
+```{r echo=TRUE}
+browseKEGG(kegg_up, 'mmu05222')
+```
+
+---
+
+**Additional information**: Besides the normal visualization method, such as `dotplot`, `barplot` 
+and so on. With the function `browseKEGG` we can visualize the specific pathway and gets more 
+detail information. Here is [another useful website tool](http://www.fgvis.com/expressvis/importData) 
+which may help you to analysis the RNAseq data. 

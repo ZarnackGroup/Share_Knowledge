@@ -1,0 +1,180 @@
+---
+title: "Differential Gene Expression Analysis Part 1"
+author: "You Zhou"
+date: "`r format(Sys.time(), '%B %e, %Y')`"
+output:
+  html_document:
+    df_print: paged
+    toc: yes
+    toc_depth: '3'
+  bookdown::pdf_document2:
+    fig_caption: yes
+    number_sections: no
+    toc: yes
+    toc_depth: 3
+  bookdown::html_document2:
+    fig_caption: yes
+    number_sections: no
+    theme: cerulean
+    toc: yes
+    toc_depth: 3
+  html_notebook:
+    fig_caption: yes
+    number_sections: no
+    theme: cerulean
+    toc: yes
+    toc_depth: 3
+graphics: yes
+header-includes:
+- \makeatletter\renewcommand*{\fps@figure}{h}\makeatother
+- \usepackage{placeins}
+geometry: margin=1in
+fontsize: 18pt
+---
+
+```{r knitr off, echo=FALSE, message=FALSE,cache=FALSE, results="hide", render=FALSE ,warning=FALSE}
+knitr::opts_chunk$set(echo=FALSE, error=FALSE, warning=FALSE,message=FALSE)
+```
+
+# Introduction
+
+Differential expression analysis means taking the normalized read count data 
+and performing statistical analysis to discover quantitative changes in 
+expression levels between experimental groups. For example, we use statistical 
+testing to decide whether, for a given gene, an observed difference in read 
+counts is significant, that is, whether it is greater than what would be 
+expected just due to natural random variation.  
+  
+For a normal workflow, we need to first map the reads. Then we will do the counting step. After the counting step we can do the differential gene 
+expression analysis with the tool like `edgeR` or `DESeq2`. 
+  
+This coding tasks is about the downstream analysis after we get the result from 
+`DESeq` function with `DESeq2` package. For doing the incoming tasks, the 
+following package are recommended.
+
+```{r echo=TRUE, error=FALSE, warning=FALSE,message=FALSE}
+## Load the suggested packages
+library(DESeq2)
+library(dplyr)
+library(ggplot2)
+library(ggrepel)
+```
+
+# Tasks
+## Task1
+Loading the `rds` files that I shared in the slack as a vector `dds`.
+
+```{r echo=TRUE}
+## Read data
+dds <- readRDS("/Users/codezy/Desktop/Project/coding task/04.03.2021 Differential Analysis/rds/test_DESeq_data.rds")
+```
+
+## Task2
+Generating a *principal components analysis* (PCA) plot with *all the genes*. 
+And think about the meaning of the PCA plot.
+
+**Tips**: the package `DESeq2` may help.
+
+```{r echo=TRUE, error=FALSE, message=FALSE, warning=FALSE, eval=TRUE}
+## Variance-stabilizing transformation
+vsd <- vst(dds, blind = FALSE) 
+## Or rlog transformation
+rlog <- rlog(dds, blind=FALSE)
+## PCA plot
+plotPCA(vsd, intgroup=c("condition"), ntop = nrow(vsd))
+```
+
+## Task3
+In the test data set, we have two condition `KO` and `WT`. Please find out the 
+log2 fold change of gene expression upon the `KO` treatment, i.e. the fold 
+change of gene expression from `WT` to `KO`.  
+  
+**Tips**: for the task 2 you can get 
+help from [DESeq2](https://bioconductor.org/packages/release/bioc/vignettes/DESeq2/inst/doc/DESeq2.html) vignettes.
+
+```{r echo=TRUE, error=FALSE, message=FALSE, warning=FALSE, eval=TRUE}
+## Method 1
+res <- results(dds, contrast=c("condition","KO","WT"))
+## Method 2 use the shrinkage for visualization and ranking
+reslfc <- lfcShrink(dds, coef="condition_KO_vs_WT", type="apeglm")
+reslfc$geneID <- rownames(reslfc)
+```
+
+## Task4
+A `MA plot` is a type of scatterplot that shows gene expression changes (log2 
+fold change) versus the gene abundance. The `MA plot` highlights an important 
+property of RNA-seq data. For the task4, please generate a `MA plot` to show 
+the genes which receive a significant regulation upon the `KO` treatment. And 
+think about how can we make the `MA plot` more clear by moving the gene dots with 
+low expression level. 
+  
+**Tips**: `padj` in the output means the adjusted P-value. 
+  
+Example of `MA plot`:  
+
+```{R echo=TRUE, error=FALSE, message=FALSE, warning=FALSE, eval=TRUE}
+drawLines <- function() abline(h=c(-.5,.5),col="dodgerblue",lwd=2)
+plotMA(res); drawLines()
+```
+
+```{R eval=TRUE, echo=TRUE, error=FALSE, message=FALSE, warning=FALSE}
+drawLines <- function() abline(h=c(-.5,.5),col="dodgerblue",lwd=2)
+plotMA(reslfc); drawLines()
+```
+
+## Task5
+Generating an MA plot with the label of top 5 down&up (based on the padj)
+regulated gene ID.    
+  
+**Tips**: the package `ggplot2` and `ggrepel` may help here. 
+
+```{R echo=TRUE, error=FALSE, message=FALSE, warning=FALSE, results='hide'}
+reslfc <- reslfc[order(reslfc$padj),]
+reslfc_up_top <- reslfc[reslfc$log2FoldChange > 0,] %>% .[seq_len(5),]
+reslfc_down_top <- reslfc[reslfc$log2FoldChange < 0,] %>% .[seq_len(5),]
+
+Top_genes <- c(reslfc_up_top$geneID, reslfc_down_top$geneID)
+
+reslfc <- as.data.frame(reslfc) %>% mutate(log10baseMean = log10(baseMean))
+
+ggplot(reslfc, aes(x = log10baseMean, log2FoldChange)) +
+    geom_point(color = "black",size = 1)  +
+    theme_bw() + 
+    geom_point(data = . %>% filter(padj <= 0.05), 
+               color = "red",size = 1) +
+    geom_label_repel(aes(label=ifelse(geneID %in% Top_genes,
+                                      substr(as.character(geneID), 1, 18),'')),
+                     max.overlaps = Inf,
+                     force = 10, #Increasing this number could help to avoid overlap
+                     segment.color = 'black') +
+    geom_hline(yintercept = c(-0.5,0.5), color='coral', size=1, linetype = 2)
+```
+
+## Task6
+A `volcano plot` is a type of scatter plot that shows statistical significance 
+(P value) versus magnitude of change (fold change). It enables quick visual 
+identification of genes with large fold changes that are also statistically 
+significant. Please try to generate an `volcano` plot with the label of top 
+5 down&up (based on the padj) regulated gene ID.    
+  
+**Tips**: the package `ggplot2` and `ggrepel` may help here.
+
+Example:  
+
+```{R echo=TRUE, error=FALSE, message=FALSE, warning=FALSE, eval=TRUE}
+reslfc$log10Padj <- -log10(reslfc$padj)
+
+ggplot(reslfc, aes(x = log2FoldChange, log10Padj)) +
+    geom_point(color = "grey", size = 1)  +
+    geom_vline(xintercept = c(-1, 1), color='coral', size=1, linetype = 2) +
+    theme_bw() + ylab("-log10 adjusted P-value") + 
+    geom_point(data = . %>% filter(padj <= 0.05& log2FoldChange > 1), 
+               color = "orangered2",size = 1) +
+    geom_point(data = . %>% filter(padj <= 0.05& log2FoldChange < -1), 
+               color = "deepskyblue3",size = 1) +
+    geom_label_repel(aes(label=ifelse(geneID %in% Top_genes,
+                                      substr(as.character(geneID), 1, 18),'')), 
+                     max.overlaps = Inf,
+                     force = 10, #Increasing this number could help to avoid overlap
+                     segment.color = 'black') 
+```
