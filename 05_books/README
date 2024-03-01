@@ -1,9 +1,19 @@
-*R & Statistics:*
+R & Statistics:
+----------------
 Statistics for Biology in R: Modern Statistics for Modern Biology from Susan Holmes and Wolfgang Huber
   - also has for example a whole chapter on ggplot
   - available at https://web.stanford.edu/class/bios221/book/introduction.html
 
-*Using bash and commanline tools*
+Using bash and command line tools
+--------------------------------
 The Biostar Handbook: Your Bioinformatics Data Analysis Guide from Istvan Albert
-  - step by step introduction into commandline processing of biological data
+  - step-by-step introduction into command line processing of biological data
   - You can ask Kathi for the ebook
+
+Maschine learning intro
+------------------------
+An Introduction to Statistical Learning with Applications in R
+ - the theory behind most basic techniques
+- pdf is freely available, ask Melina
+
+
