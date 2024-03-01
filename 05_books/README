@@ -1,7 +1,9 @@
-A 1) Statistics for Biology in R: Modern Statistics for Modern Biology from Susan Holmes and Wolfgang Huber
+*R & Statistics:*
+Statistics for Biology in R: Modern Statistics for Modern Biology from Susan Holmes and Wolfgang Huber
   - also has for example a whole chapter on ggplot
   - available at https://web.stanford.edu/class/bios221/book/introduction.html
-  
- 2) The Biostar Handbook: Your Bioinformatics Data Analysis Guide from Istvan Albert
+
+*Using bash and commanline tools*
+The Biostar Handbook: Your Bioinformatics Data Analysis Guide from Istvan Albert
   - step by step introduction into commandline processing of biological data
   - You can ask Kathi for the ebook
