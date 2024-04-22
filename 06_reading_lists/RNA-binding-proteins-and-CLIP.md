@@ -2,7 +2,7 @@
 
 ## Summary of RNA binding proteins
 
-Gerstberger et al. 2014: A census of human RNA-binding proteins 
+Gerstberger et al. 2014: A census of human RNA-binding proteins https://pubmed.ncbi.nlm.nih.gov/25365966/
 
 ## Review comparing multiple CLIP methods and their processing
 
