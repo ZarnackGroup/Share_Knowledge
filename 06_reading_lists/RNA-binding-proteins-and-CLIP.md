@@ -1,4 +1,4 @@
-# RNA binding proteins and CLIP
+# Introductory reading for RNA binding proteins and CLIP
 
 **Summary of RNA binding proteins:**
 
