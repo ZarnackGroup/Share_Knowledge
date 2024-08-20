@@ -26,20 +26,32 @@ cl_without_0 <- cl[rowSums(cl)!=0 ,] %>%
    arrange(desc(rowSums(.))) %>%
    as.matrix()
 
-# option: calculate z-scores
-
-
 
 # make heatmap
 col_fun <-  circlize::colorRamp2(c(0,10), c("white", "black"))
-line <- HeatmapAnnotation(crosslinks = anno_lines(colSums(cl), height = unit(2, "cm"), ylim = c(0, 136000)))
+line <- HeatmapAnnotation(crosslinks = anno_lines(colSums(cl), height = unit(2, "cm")))
 
 ht_opt$heatmap_column_names_gp = gpar(fontsize = 5)
 
-
 # label top genes
-npc_cl_top_genes <- BS_15nt$gene_name
-npc_cl_top_genes[duplicated(npc_cl_top_genes)] <- ""
-npc_cl_top_genes[21:length(npc_cl_top_genes)] <- ""
+cl_top_genes <- window$gene_name
+cl_top_genes[duplicated(cl_top_genes)] <- ""
+cl_top_genes[21:length(cl_top_genes)] <- ""
 
-Heatmap(npc_cl_without_0[1:1000,], col =col_fun, cluster_columns = F, cluster_rows = F, top_annotation = line, use_raster = T, raster_device = "png", raster_quality = 10, right_annotation = rowAnnotation(foo = anno_mark(at = 1:20, labels = npc_cl_top_genes)))
+Heatmap(cl_without_0[1:1000,], col =col_fun, 
+cluster_columns = F, cluster_rows = F, 
+        top_annotation = line, use_raster = T, 
+        raster_device = "png", raster_quality = 10, 
+        right_annotation = rowAnnotation(foo = anno_mark(at = 1:20, labels = cl_top_genes)))
+
+
+####################
+# option: calculate rowwise z-scores
+#####################
+
+means <- rowMeans(cl_without_0 , na.rm=T)
+sds <- sd(cl_without_0 , na.rm=T)
+
+cl_zscore <- (cl_without_0  - means)
+cl_zscore <- cl_zscore / sds
+
