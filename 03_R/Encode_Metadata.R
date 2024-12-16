@@ -31,3 +31,18 @@ ggplot(all_encode_shRNAseq_fastqs, aes(x = read_count)) +
   geom_histogram()
 
 
+# getting the additional organism info
+# --> the organism info you get from a search with type Experiment instead of type File
+
+query <- "search/?type=Experiment&assay_title=shRNA%20RNA-seq&limit=all"
+response <- GET(paste0(base_url, query), add_headers(accept = "application/json"))
+exp_data <- fromJSON(content(response, "text", encoding = "UTF-8"))
+
+
+exp_data_small <- exp_data$`@graph` %>% select(c("accession", "biosample_summary")) %>%
+  rowwise() %>%
+  mutate(organism  = paste(unlist(strsplit(biosample_summary, split = " "))[[1]], unlist(strsplit(biosample_summary, split = " "))[[2]])) 
+
+
+
+
