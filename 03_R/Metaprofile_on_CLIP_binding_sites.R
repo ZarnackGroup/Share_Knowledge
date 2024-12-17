@@ -15,9 +15,14 @@ window <- as.data.frame(BS+half_window_size )%>%
 cl_plus_rle <- import.bw("path/to/all_crosslinks.plus.bw", as = "Rle")
 cl_minus_rle <- import.bw("path/to/all_crosslinks.minus.bw",  as = "Rle")
 
+# enlarge chromosomes in rle so the windows do not run off
+half_window_size_rle <- Rle(rep(0,half_window_size))
+cl_p_enlarged <- lapply(cl_plus_rle, function(x) c(x, half_window_size_rle )) %>% RleList(compress=FALSE)
+cl_m_enlarged <- lapply(cl_minus_rle, function(x) c(x, half_window_size_rle )) %>% RleList(compress=FALSE)
+
 # make matix of crosslinks
-cl_p <- as.matrix(cl_p_rle[window[strand(window) == "+"]])
-cl_m <- as.matrix(cl_m_rle[window[strand(window) == "-"]])
+cl_p <- as.matrix(cl_p_enlarged[window[strand(window) == "+"]])
+cl_m <- as.matrix(cl_m_enlarged[window[strand(window) == "-"]])
 cl <- rbind(cl_p, cl_m) 
 
 # exclude windows with 0 crosslinks
