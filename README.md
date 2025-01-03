@@ -1,5 +1,10 @@
-# FirstSteps
-Infos for students
+# Share Knowledge
+Here we collected useful code and tutorials that can be reused in the group.
+
+
+## Infos for students
+
+### FirstSteps
 
 There are solutions to most problems on StackOverflow and the Biostar Forum.
 
@@ -8,7 +13,7 @@ If you are stuck you can also always post in our slack questions channel!
 Please also have a look at our collection of coding tasks. Most likely there will be some usefull things for your analysis!
 
 
-## Learning bash and using the cluster
+### Learning bash and using the cluster
 
 Datacamp:  https://app.datacamp.com/learn/courses/introduction-to-shell,  https://app.datacamp.com/learn/courses/introduction-to-bash-scripting
 
@@ -22,7 +27,7 @@ windows - https://github.com/ZarnackGroup/Teaching/tree/main/access_win_mobaxter
 
 and how to use it: https://github.com/ZarnackGroup/Teaching/tree/main/jobs.
 
-## Learning R
+### Learning R
 
 Good book on statistcs in R for Biologists:
 https://www.huber.embl.de/msmb/
