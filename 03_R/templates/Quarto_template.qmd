@@ -21,7 +21,7 @@ format:
     fontsize: 11pt
     linestretch: 1.5
         
-    fig-format: svg
+    fig-format: png
     cap-location: margin
     crossref:
       fig-title: Fig
