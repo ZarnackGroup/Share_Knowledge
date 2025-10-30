@@ -1,0 +1,1413 @@
+---
+title: "code review 30.10.25"
+author: "Timur"
+editor: visual
+output-dir: "C:\\Users\\62873\\Desktop\\code_review\\"
+format:
+  html:
+    code-fold: true
+    code-overflow: scroll
+    code-summary: "Show code"
+    code-tools: true
+    code-line-numbers: true
+    toc: true
+    toc-depth: 3
+    toc-location: left
+    toc-expand: true
+    number-sections: true
+    theme: sandstone
+    fontsize: 11pt
+    linestretch: 1.5
+    fig-format: png
+    cap-location: margin
+    crossref:
+      fig-title: Fig
+    embed-resources: true
+    link-external-newwindow: true
+    smooth-scroll: true
+    execute:
+      echo: true
+      include: true
+      warning: false
+      eval: true
+      cache: false
+---
+
+# essential packages
+
+```{r}
+#| echo: false
+
+Sys.setenv(LANG = "en")
+library("biomaRt")
+library(knitr)
+library(stringr)
+library(GenomicRanges)
+library(GenomicFeatures)
+library(Gviz)
+library(org.Mm.eg.db)
+library(rtracklayer)
+library(txdbmaker)
+library(dplyr)
+library(magick)
+
+path = "C:\\Users\\62873\\Desktop\\code_review\\"
+```
+
+# load objects
+
+```{r}
+# load the ranges we want to plot
+ranges <- readRDS(paste0(path, "ranges_df.rds"))
+
+# load the genomic annotation
+anno <- readRDS(paste0(path, "annotation.rds"))
+
+conditions = list("GFP_D", "GFP_I")
+options(ucscChromosomeNames=FALSE)
+
+print(as.data.frame(ranges))
+```
+
+# gviz
+
+## simplest gviz function
+
+```{r}
+#  Plotting function
+run_gviz <- function(range){
+  # turn df row into gr object
+  gr<-makeGRangesFromDataFrame(range, keep.extra.columns = T)
+  print(gr$gene_name)
+  # create a track
+  gviz_plot <- AnnotationTrack(gr, name = gr$gene_name) # <----- adds a track (range+direction)
+  #displayPars(gviz_plot) <- list(shape = "box")
+  plotTracks(gviz_plot)
+  }
+run_gviz(ranges[1,])
+
+
+```
+
+## add coordinate track
+
+```{r}
+#  Plotting function
+run_gviz <- function(range){
+  # turn df row into gr object
+  gr<-makeGRangesFromDataFrame(range, keep.extra.columns = T)
+  
+  gviz_plot <- AnnotationTrack(gr, name = gr$gene_name) # <----- adds a track (range+direction)
+  
+  gtrack <- GenomeAxisTrack() # <----- adds a track (genomic coordinates)
+  
+  plotTracks(list(gtrack, gviz_plot))
+  }
+run_gviz(ranges[1,])
+
+
+```
+
+## add coverage tracks
+
+```{r}
+#  Plotting function
+run_gviz <- function(range){
+
+    
+# prepare data
+  # turn df row into gr object
+  gr<-makeGRangesFromDataFrame(range, keep.extra.columns = T)
+  
+  # import bigwig files (only region of interest)
+  bw_ranges = list()
+  for(cond_name in conditions){
+    bw_ranges[[cond_name]] <- import(paste0(path, "bigwig_files\\", cond_name, "_merged", ".bw"), 
+                        which = gr, as = "GRanges")
+  }
+    
+# define tracks
+  
+  track_list = list()  
+  
+  track_list[[1]] = GenomeAxisTrack()  # <----- adds a track (range+direction)
+  track_list[[2]] = AnnotationTrack(gr, name = gr$gene_name) # <----- adds a track (genomic coordinates)
+  
+    # load the coverage tracks
+  for(cond_name in conditions){
+    # import bigwig
+
+    # append coverage of each condition to the track list
+    track_list <- append(track_list, DataTrack(range = bw_ranges[[cond_name]], # <--- adds a track
+                                               genome = "mm39",                # (.bw coverage)
+                                               chromosome = as.character(seqnames(gr)),
+                                               name = paste0(cond_name),
+                                               type = "histogram",
+                                               col.histogram = "grey",
+                                               fill.histogram = "grey",
+                                               background.title = "indianred4",
+                                               col.title = "black"))
+    }
+  
+  plotTracks(track_list)
+  }
+run_gviz(ranges[1,])
+
+
+```
+
+### normalize the scale (IGV "group autoscale" analog)
+
+```{r}
+#  Plotting function
+run_gviz <- function(range){
+
+    
+# prepare data
+  # turn df row into gr object
+  gr<-makeGRangesFromDataFrame(range, keep.extra.columns = T)
+  
+  # import bigwig files (only region of interest)
+  bw_ranges = list()
+  max_y = 0 # <-- create a maximal coverage value variable
+  for(cond_name in conditions){
+    bw_ranges[[cond_name]] <- import(paste0(path, "bigwig_files\\", cond_name, "_merged", ".bw"), 
+                        which = gr, as = "GRanges")
+    max_y <- max(max_y, bw_ranges[[cond_name]]$score) # <-- update the maximal coverage if needed
+  }
+    
+# define tracks
+  
+  track_list = list()  
+  
+  track_list = append(track_list, GenomeAxisTrack())  # <----- adds a track (range+direction)
+  track_list = append(track_list, AnnotationTrack(gr, name = gr$gene_name)) # <----- adds a track (genomic coordinates)
+    # load the coverage tracks
+  for(cond_name in conditions){
+    # append coverage of each condition to the track list
+    track_list <- append(track_list, DataTrack(range = bw_ranges[[cond_name]], # <--- adds a track
+                                               genome = "mm39",                # (.bw coverage)
+                                               chromosome = as.character(seqnames(gr)),
+                                               name = paste0(cond_name),
+                                               type = "histogram",
+                                               col.histogram = "grey",
+                                               fill.histogram = "grey",
+                                               background.title = "indianred4",
+                                               col.title = "black",
+                                               ylim=c(0,max_y))) # <-- sets maximal y value
+  }
+  
+  
+  plotTracks(track_list)
+  }
+run_gviz(ranges[1,])
+
+
+```
+
+## Expand the window
+
+```{r}
+#  Plotting function
+run_gviz <- function(range){
+
+# prepare data
+  # turn df row into gr object
+  gr<-makeGRangesFromDataFrame(range, keep.extra.columns = T)
+  
+  # define window size
+  window <- GRanges(seqnames = seqnames(gr),
+                    ranges = IRanges(start = start(gr) - width(gr)*2,
+                                     end = end(gr) + width(gr)*2),
+                    strand = strand(gr))
+  
+  # import bigwig files (only region of interest)
+  bw_ranges = list()
+  max_y = 0 # <-- create a maximal coverage value variable
+  for(cond_name in conditions){
+    bw_ranges[[cond_name]] <- import(paste0(path, "bigwig_files\\", cond_name, "_merged", ".bw"), 
+                        which = window, as = "GRanges")
+    max_y <- max(max_y, bw_ranges[[cond_name]]$score) # <-- update the maximal coverage if needed
+  }
+  
+# define tracks
+  track_list = list()  
+  track_list = append(track_list, GenomeAxisTrack())  # <----- adds a track (range+direction)
+  track_list = append(track_list, AnnotationTrack(gr, name = gr$gene_name)) # <----- adds a track (genomic coordinates)
+    # load the coverage tracks
+  for(cond_name in conditions){
+    # append coverage of each condition to the track list
+    track_list <- append(track_list, DataTrack(range = bw_ranges[[cond_name]], # <--- adds a track
+                                               genome = "mm39",                # (.bw coverage)
+                                               chromosome = as.character(seqnames(gr)),
+                                               name = paste0(cond_name),
+                                               type = "histogram",
+                                               col.histogram = "grey",
+                                               fill.histogram = "grey",
+                                               background.title = "indianred4",
+                                               col.title = "black",
+                                               ylim=c(0,max_y))) # <-- sets maximal y value
+  }
+  
+  plotTracks(track_list,
+             from = start(window),
+             to = end(window))
+  }
+run_gviz(ranges[1,])
+
+
+```
+
+## Add chromosome localisation
+
+```{r}
+#  Plotting function
+run_gviz <- function(range){
+
+# prepare data
+  # turn df row into gr object
+  gr<-makeGRangesFromDataFrame(range, keep.extra.columns = T)
+  
+  # define window size
+  window <- GRanges(seqnames = seqnames(gr),
+                    ranges = IRanges(start = start(gr) - width(gr)*2,
+                                     end = end(gr) + width(gr)*2),
+                    strand = strand(gr)
+                    )
+  genome(window)="mm39"
+  # import bigwig files (only region of interest)
+  bw_ranges = list()
+  max_y = 0 # <-- create a maximal coverage value variable
+  for(cond_name in conditions){
+    bw_ranges[[cond_name]] <- import(paste0(path, "bigwig_files\\", cond_name, "_merged", ".bw"), 
+                        which = window, as = "GRanges")
+    max_y <- max(max_y, bw_ranges[[cond_name]]$score) # <-- update the maximal coverage if needed
+  }
+  
+# define tracks
+  track_list = list()  
+  
+  track_list = append(track_list, IdeogramTrack(genome = unique(genome(window)), chromosome = seqnames(window)))
+  track_list = append(track_list, GenomeAxisTrack())  # <----- adds a track (range+direction)
+  track_list = append(track_list, AnnotationTrack(gr, name = gr$gene_name)) # <----- adds a track (genomic coordinates)
+    # load the coverage tracks
+  for(cond_name in conditions){
+    # append coverage of each condition to the track list
+    track_list <- append(track_list, DataTrack(range = bw_ranges[[cond_name]], # <--- adds a track
+                                               genome = "mm39",                # (.bw coverage)
+                                               chromosome = as.character(seqnames(gr)),
+                                               name = paste0(cond_name),
+                                               type = "histogram",
+                                               col.histogram = "grey",
+                                               fill.histogram = "grey",
+                                               background.title = "indianred4",
+                                               col.title = "black",
+                                               ylim=c(0,max_y))) # <-- sets maximal y value
+  }
+  
+  plotTracks(track_list,
+             from = start(window),
+             to = end(window))
+  }
+run_gviz(ranges[1,])
+
+
+```
+
+## Add genomic annotations
+
+```{r}
+#  Plotting function
+run_gviz <- function(range){
+
+# prepare data
+  # turn df row into gr object
+  gr<-makeGRangesFromDataFrame(range, keep.extra.columns = T)
+  
+  # define window size
+  window <- GRanges(seqnames = seqnames(gr),
+                    ranges = IRanges(start = start(gr) - width(gr)*2,
+                                     end = end(gr) + width(gr)*2),
+                    strand = strand(gr)
+                    )
+  genome(window)="mm39"
+  # import bigwig files (only region of interest)
+  bw_ranges = list()
+  max_y = 0 # <-- create a maximal coverage value variable
+  for(cond_name in conditions){
+    bw_ranges[[cond_name]] <- import(paste0(path, "bigwig_files\\", cond_name, "_merged", ".bw"), 
+                        which = window, as = "GRanges")
+    max_y <- max(max_y, bw_ranges[[cond_name]]$score) # <-- update the maximal coverage if needed
+  }
+  
+# define tracks
+  track_list = list()  
+  
+  track_list = append(track_list, IdeogramTrack(genome = unique(genome(window)), chromosome = seqnames(window)))
+  track_list = append(track_list, GenomeAxisTrack())  # <----- adds a track (range+direction)
+  track_list = append(track_list, AnnotationTrack(gr, name = gr$gene_name)) # <----- adds a track (genomic coordinates)
+  
+  # load the coverage tracks
+  for(cond_name in conditions){
+  # append coverage of each condition to the track list
+    track_list <- append(track_list, DataTrack(range = bw_ranges[[cond_name]], # <--- adds a track
+                                               genome = "mm39",                # (.bw coverage)
+                                               chromosome = as.character(seqnames(gr)),
+                                               name = paste0(cond_name),
+                                               type = "histogram",
+                                               col.histogram = "grey",
+                                               fill.histogram = "grey",
+                                               background.title = "indianred4",
+                                               col.title = "black",
+                                               ylim=c(0,max_y))) # <-- sets maximal y value
+  }
+  
+  # load the annotation track
+  
+  anno_selection <- subsetByOverlaps(anno, window)
+  
+  track_list = append(track_list, GeneRegionTrack(anno_selection, #<---- adds annotation track
+                                       genome = "mm39",
+                                       chromosome = as.character(seqnames(gr)),
+                                       name = "gencode.vM38",
+                                       transcriptAnnotation = "gene_name",  # or "gene_id"
+                                       nshowId = F,
+                                       background.title = "indianred4",
+                                       col.title = "black",
+                                       fill = "lightblue",
+                                       col = "darkblue",
+                                       collapseTranscripts = F,  # or "longest", "gene"
+                                       stacking = "full",            # or "dense", "full"
+                                       arrowHeadWidth = 10))
+  
+
+  plotTracks(track_list,
+             from = start(window),
+             to = end(window))
+  }
+run_gviz(ranges[1,])
+
+
+```
+
+### Use txdb object
+
+```{r}
+#  Plotting function
+run_gviz <- function(range){
+
+# prepare data
+  # turn df row into gr object
+  gr<-makeGRangesFromDataFrame(range, keep.extra.columns = T)
+  
+  # define window size
+  window <- GRanges(seqnames = seqnames(gr),
+                    ranges = IRanges(start = start(gr) - width(gr)*2,
+                                     end = end(gr) + width(gr)*2),
+                    strand = strand(gr)
+                    )
+  genome(window)="mm39"
+  # import bigwig files (only region of interest)
+  bw_ranges = list()
+  max_y = 0 # <-- create a maximal coverage value variable
+  for(cond_name in conditions){
+    bw_ranges[[cond_name]] <- import(paste0(path, "bigwig_files\\", cond_name, "_merged", ".bw"), 
+                        which = window, as = "GRanges")
+    max_y <- max(max_y, bw_ranges[[cond_name]]$score) # <-- update the maximal coverage if needed
+  }
+  
+# define tracks
+  track_list = list()  
+  
+  track_list = append(track_list, IdeogramTrack(genome = unique(genome(window)), chromosome = seqnames(window)))
+  track_list = append(track_list, GenomeAxisTrack())  # <----- adds a track (range+direction)
+  track_list = append(track_list, AnnotationTrack(gr, name = gr$gene_name)) # <----- adds a track (genomic coordinates)
+  
+  # load the coverage tracks
+  for(cond_name in conditions){
+  # append coverage of each condition to the track list
+    track_list <- append(track_list, DataTrack(range = bw_ranges[[cond_name]], # <--- adds a track
+                                               genome = "mm39",                # (.bw coverage)
+                                               chromosome = as.character(seqnames(gr)),
+                                               name = paste0(cond_name),
+                                               type = "histogram",
+                                               col.histogram = "grey",
+                                               fill.histogram = "grey",
+                                               background.title = "indianred4",
+                                               col.title = "black",
+                                               ylim=c(0,max_y))) # <-- sets maximal y value
+  }
+  
+  # load the annotation track
+  
+  anno_selection <- subsetByOverlaps(anno, window)
+  anno_selection <- makeTxDbFromGRanges(anno_selection)
+  
+  geneTrack <- GeneRegionTrack(anno_selection,
+                               genome = "mm39",
+                               chromosome = as.character(seqnames(gr)),
+                               name = "gencode.vM38",
+                               transcriptAnnotation = "gene_name",  # or "gene_id"
+                               nshowId = F,
+                               background.title = "indianred4",
+                               col.title = "black",
+                               fill = "lightblue",
+                               col = "darkblue",
+                               collapseTranscripts = F,  # or "longest", "gene"
+                               stacking = "full",            # or "dense", "full"
+                               arrowHeadWidth = 10)
+  
+  
+  
+  track_list = append(track_list, geneTrack) #<---- adds annotation track
+  
+  
+  plotTracks(track_list,
+             from = start(window),
+             to = end(window))
+  }
+run_gviz(ranges[1,])
+
+
+```
+
+### TxID -\> gene name
+
+```{r}
+#  Plotting function
+run_gviz <- function(range){
+
+# prepare data
+  # turn df row into gr object
+  gr<-makeGRangesFromDataFrame(range, keep.extra.columns = T)
+  
+  # define window size
+  window <- GRanges(seqnames = seqnames(gr),
+                    ranges = IRanges(start = start(gr) - width(gr)*2,
+                                     end = end(gr) + width(gr)*2),
+                    strand = strand(gr)
+                    )
+  genome(window)="mm39"
+  # import bigwig files (only region of interest)
+  bw_ranges = list()
+  max_y = 0 # <-- create a maximal coverage value variable
+  for(cond_name in conditions){
+    bw_ranges[[cond_name]] <- import(paste0(path, "bigwig_files\\", cond_name, "_merged", ".bw"), 
+                        which = window, as = "GRanges")
+    max_y <- max(max_y, bw_ranges[[cond_name]]$score) # <-- update the maximal coverage if needed
+  }
+  
+# define tracks
+  track_list = list()  
+  
+  track_list = append(track_list, IdeogramTrack(genome = unique(genome(window)), chromosome = seqnames(window)))
+  track_list = append(track_list, GenomeAxisTrack())  # <----- adds a track (range+direction)
+  track_list = append(track_list, AnnotationTrack(gr, name = gr$gene_name)) # <----- adds a track (genomic coordinates)
+  
+  # load the coverage tracks
+  for(cond_name in conditions){
+  # append coverage of each condition to the track list
+    track_list <- append(track_list, DataTrack(range = bw_ranges[[cond_name]], # <--- adds a track
+                                               genome = "mm39",                # (.bw coverage)
+                                               chromosome = as.character(seqnames(gr)),
+                                               name = paste0(cond_name),
+                                               type = "histogram",
+                                               col.histogram = "grey",
+                                               fill.histogram = "grey",
+                                               background.title = "indianred4",
+                                               col.title = "black",
+                                               ylim=c(0,max_y))) # <-- sets maximal y value
+  }
+  
+  # load the annotation track
+  
+  anno_selection <- subsetByOverlaps(anno, window)
+  anno_selection <- makeTxDbFromGRanges(anno_selection)
+  
+  geneTrack <- GeneRegionTrack(anno_selection,
+                               genome = "mm39",
+                               chromosome = as.character(seqnames(gr)),
+                               name = "gencode.vM38",
+                               transcriptAnnotation = "gene_name",  # or "gene_id"
+                               nshowId = F,
+                               background.title = "indianred4",
+                               col.title = "black",
+                               fill = "lightblue",
+                               col = "darkblue",
+                               collapseTranscripts = F,  # or "longest", "gene"
+                               stacking = "full",            # or "dense", "full"
+                               arrowHeadWidth = 10)
+  
+  # convert geneID into geneName
+  
+  gene(geneTrack) <- strsplit(gene(geneTrack),".",fixed=T) %>% sapply("[[",1)
+  tryCatch(
+    mysymbols <- unlist(mapIds(org.Mm.eg.db, gene(geneTrack), 
+                               "SYMBOL", 
+                               "ENSEMBL", 
+                               multiVals = "first")),
+           error=function(e){mysymbols <<- setNames(rep(gene, length(gene(geneTrack))), gene(geneTrack))})
+  
+  symbol(geneTrack) <- mysymbols[gene(geneTrack)]
+  
+  
+  track_list = append(track_list, geneTrack) #<---- adds annotation track
+  
+  
+  plotTracks(track_list,
+             from = start(window),
+             to = end(window))
+  }
+run_gviz(ranges[6,])
+
+
+```
+
+### Select only main isoforms
+
+```{r}
+#  Plotting function
+run_gviz <- function(range, all_isoforms=T){
+
+# prepare data
+  # turn df row into gr object
+  gr<-makeGRangesFromDataFrame(range, keep.extra.columns = T)
+  
+  # define window size
+  window <- GRanges(seqnames = seqnames(gr),
+                    ranges = IRanges(start = start(gr) - width(gr)*2,
+                                     end = end(gr) + width(gr)*2),
+                    strand = strand(gr)
+                    )
+  genome(window)="mm39"
+  # import bigwig files (only region of interest)
+  bw_ranges = list()
+  max_y = 0 # <-- create a maximal coverage value variable
+  for(cond_name in conditions){
+    bw_ranges[[cond_name]] <- import(paste0(path, "bigwig_files\\", cond_name, "_merged", ".bw"), 
+                        which = window, as = "GRanges")
+    max_y <- max(max_y, bw_ranges[[cond_name]]$score) # <-- update the maximal coverage if needed
+  }
+  
+# define tracks
+  track_list = list()  
+  
+  track_list = append(track_list, IdeogramTrack(genome = unique(genome(window)), chromosome = seqnames(window)))
+  track_list = append(track_list, GenomeAxisTrack(background.title = "indianred4")) # <----- adds a track (genomic coordinates) 
+  track_list = append(track_list, AnnotationTrack(gr, name = gr$gene_name,
+                                                  background.title = "indianred4")) # <----- adds a track (range+direction)
+  
+  # load the coverage tracks
+  for(cond_name in conditions){
+  # append coverage of each condition to the track list
+    track_list <- append(track_list, DataTrack(range = bw_ranges[[cond_name]], # <--- adds a track
+                                               genome = "mm39",                # (.bw coverage)
+                                               chromosome = as.character(seqnames(gr)),
+                                               name = paste0(cond_name),
+                                               type = "histogram",
+                                               col.histogram = "darkgoldenrod",
+                                               fill.histogram = "darkgoldenrod3",
+                                               background.title = "indianred4",
+                                               col.title = "black",
+                                               ylim=c(0,max_y))) # <-- sets maximal y value
+  }
+  
+  # load the annotation track
+  
+  anno_selection <- subsetByOverlaps(anno, window)
+  
+  # ensure that only main isoform is shown (if needed)
+  if(!all_isoforms){
+    anno_selection1 <- filter(as.data.frame(anno_selection), grepl("appris_principal_1", tag)) %>%  
+                            makeGRangesFromDataFrame(keep.extra.columns = T)
+    #if no appris_principal_1 found, we take appris_principal 
+    if(length(anno_selection1)>0){anno_selection <- anno_selection1} else{
+      anno_selection <- filter(as.data.frame(anno_selection), 
+                                grepl("appris_principal", tag)) %>%  
+                                makeGRangesFromDataFrame(keep.extra.columns = T)
+    }
+  }
+  # turn the annotation into a txdb object
+  anno_selection <- makeTxDbFromGRanges(anno_selection)
+  
+  
+  geneTrack <- GeneRegionTrack(anno_selection,
+                               genome = "mm39",
+                               chromosome = as.character(seqnames(gr)),
+                               name = "gencode.vM38",
+                               transcriptAnnotation = "symbol",
+                               background.title = "indianred4",
+                               col.title = "black",
+                               col.group = "black",
+                               showId = TRUE,
+                               just.group = "above",
+                               fill = "deepskyblue1",
+                               col = "darkblue",
+                               collapseTranscripts = F,  # or "longest", "gene"
+                               stacking = "full",            # or "dense", "full"
+                               arrowHeadWidth = 10)
+  
+  gene(geneTrack) <- strsplit(gene(geneTrack),".",fixed=T) %>% sapply("[[",1)
+  tryCatch(
+    mysymbols <- unlist(mapIds(org.Mm.eg.db, gene(geneTrack), 
+                               "SYMBOL", 
+                               "ENSEMBL", 
+                               multiVals = "first")),
+           error=function(e){mysymbols <<- setNames(rep(gene, length(gene(geneTrack))), gene(geneTrack))})
+  
+  symbol(geneTrack) <- mysymbols[gene(geneTrack)]
+  
+  
+  track_list = append(track_list, geneTrack) #<---- adds annotation track
+  
+  
+  plotTracks(track_list,
+             from = start(window),
+             to = end(window))
+  }
+run_gviz(ranges[6,], all_isoforms=F)
+
+
+```
+
+## Add UCSC tracks
+
+```{r}
+#  Plotting function
+run_gviz <- function(range, all_isoforms=T){
+
+# prepare data
+  # turn df row into gr object
+  gr<-makeGRangesFromDataFrame(range, keep.extra.columns = T)
+  
+  # define window size
+  window <- GRanges(seqnames = seqnames(gr),
+                    ranges = IRanges(start = start(gr) - width(gr)*2,
+                                     end = end(gr) + width(gr)*2),
+                    strand = strand(gr)
+                    )
+  genome(window)="mm39"
+  # import bigwig files (only region of interest)
+  bw_ranges = list()
+  max_y = 0 # <-- create a maximal coverage value variable
+  for(cond_name in conditions){
+    bw_ranges[[cond_name]] <- import(paste0(path, "bigwig_files\\", cond_name, "_merged", ".bw"), 
+                        which = window, as = "GRanges")
+    max_y <- max(max_y, bw_ranges[[cond_name]]$score) # <-- update the maximal coverage if needed
+  }
+  
+# ------------------------------------define tracks--------------------------------
+  track_list = list()  
+  
+  
+   # ↓ ↓ ↓ ↓  adds a track (chromosome position)
+  track_list = append(track_list, IdeogramTrack(genome = unique(genome(window)), chromosome = seqnames(window)))
+  # ↓ ↓ ↓ ↓ adds a track (genomic coordinates)
+  track_list = append(track_list, GenomeAxisTrack(background.title = "indianred4"))
+  # ↓ ↓ ↓ ↓  adds a track (range+direction)
+  track_list = append(track_list, AnnotationTrack(gr, name = gr$gene_name,
+                                                  background.title = "indianred4")) 
+  
+  # load the coverage tracks
+  for(cond_name in conditions){
+  # ↓ ↓ ↓ ↓  adds a track (read coverage for each condition)
+    track_list <- append(track_list, DataTrack(range = bw_ranges[[cond_name]], # <--- adds a track
+                                               genome = "mm39",                # (.bw coverage)
+                                               chromosome = as.character(seqnames(gr)),
+                                               name = paste0(cond_name),
+                                               type = "histogram",
+                                               col.histogram = "darkgoldenrod",
+                                               fill.histogram = "darkgoldenrod3",
+                                               background.title = "indianred4",
+                                               ylim=c(0,max_y))) # <-- sets maximal y value
+  }
+  
+  # load the annotation track
+  
+  anno_selection <- subsetByOverlaps(anno, window)
+  
+  # ensure that only main isoform is shown (if needed)
+  if(!all_isoforms){
+    anno_selection <- filter(as.data.frame(anno_selection), grepl("appris_principal_1", tag)) %>%  
+                            makeGRangesFromDataFrame(keep.extra.columns = T)
+  }
+  # turn the annotation into a txdb object
+  anno_selection <- makeTxDbFromGRanges(anno_selection)
+  
+  geneTrack <- GeneRegionTrack(anno_selection,
+                               genome = "mm39",
+                               chromosome = as.character(seqnames(gr)),
+                               name = "gencode.vM38",
+                               transcriptAnnotation = "symbol",
+                               background.title = "indianred4",
+                               col.group = "black",
+                               showId = TRUE,
+                               just.group = "above",
+                               fill = "deepskyblue1",
+                               col = "darkblue",
+                               collapseTranscripts = F,  # or "longest", "gene"
+                               stacking = "full",            # or "dense", "full"
+                               arrowHeadWidth = 10)
+  
+  gene(geneTrack) <- strsplit(gene(geneTrack),".",fixed=T) %>% sapply("[[",1)
+  tryCatch(
+    mysymbols <- unlist(mapIds(org.Mm.eg.db, gene(geneTrack), 
+                               "SYMBOL", 
+                               "ENSEMBL", 
+                               multiVals = "first")),
+           error=function(e){mysymbols <<- setNames(rep(gene, length(gene(geneTrack))), gene(geneTrack))})
+  
+  symbol(geneTrack) <- mysymbols[gene(geneTrack)]
+  # ↓ ↓ ↓ ↓  adds a track (annotation)
+  track_list = append(track_list, geneTrack) #<---- adds annotation track
+  
+  # lookup for options here:
+  # https://genome.ucsc.edu/cgi-bin/hgTables?command=start
+  
+  # retrieve a conservation track
+  conservation <- UcscTrack(genome = "mm39", chromosome = seqnames(window), 
+                          track = "Conservation", 
+                          table = "phastCons35way",
+                          from = start(window), to = end(window), trackType = "DataTrack", 
+                          start = "start", end = "end", data = "value",
+                          type = "hist", window = "auto", 
+                          col.histogram = "darkblue", 
+                          fill.histogram = "darkblue",
+                          background.title = "indianred4",
+                          ylim = c(0, 1), name = "Conservation")
+
+  # ↓ ↓ ↓ ↓  adds a track (conservation)
+  track_list = append(track_list, conservation)
+  
+  # retrieve a GC-content track
+  
+  gcContent <- UcscTrack(genome = "mm39", chromosome = seqnames(window), 
+                       track = "GC Percent", table = "gc5BaseBw",
+                       from = start(window), to = end(window), trackType = "DataTrack", 
+                       start = "start", end = "end", data = "value",
+                       type = "hist", window = "auto", 
+                       fill.histogram = "black", col.histogram = "black",
+                       background.title = "indianred4",
+                       ylim = c(30, 70), name = "GC Percent")
+  
+  # ↓ ↓ ↓ ↓  adds a track (gc content)
+  track_list = append(track_list, gcContent)
+  
+  plotTracks(track_list,
+             from = start(window),
+             to = end(window))
+  }
+run_gviz(ranges[6,], all_isoforms=F)
+
+
+```
+
+## Highlight the region of interest
+
+```{r}
+#  Plotting function
+run_gviz <- function(range, all_isoforms=T, arrow=T){
+
+# prepare data
+  # turn df row into gr object
+  gr<-makeGRangesFromDataFrame(range, keep.extra.columns = T)
+  
+  # define window size
+  window <- GRanges(seqnames = seqnames(gr),
+                    ranges = IRanges(start = start(gr) - width(gr)*2,
+                                     end = end(gr) + width(gr)*2),
+                    strand = strand(gr)
+                    )
+  genome(window)="mm39"
+  # import bigwig files (only region of interest)
+  bw_ranges = list()
+  max_y = 0 # <-- create a maximal coverage value variable
+  for(cond_name in conditions){
+    bw_ranges[[cond_name]] <- import(paste0(path, "bigwig_files\\", cond_name, "_merged", ".bw"), 
+                        which = window, as = "GRanges")
+    max_y <- max(max_y, bw_ranges[[cond_name]]$score) # <-- update the maximal coverage if needed
+  }
+  
+# ------------------------------------define tracks--------------------------------
+  track_list = list()  
+  
+  
+   # ↓ ↓ ↓ ↓  adds a track (chromosome position)
+  track_list[["ideogram"]] = IdeogramTrack(genome = unique(genome(window)), chromosome = seqnames(window))
+  # ↓ ↓ ↓ ↓ adds a track (genomic coordinates)
+  track_list[["gen_coord"]] = GenomeAxisTrack(background.title = "indianred4")
+  # # ↓ ↓ ↓ ↓  adds a track (range+direction)
+  if(arrow){
+  track_list[["arrow"]] = AnnotationTrack(gr, name = gr$gene_name,
+                                          background.title = "indianred4")}
+  
+  # load the coverage tracks
+  for(cond_name in conditions){
+  # ↓ ↓ ↓ ↓  adds a track (read coverage for each condition)
+    track_list[[paste0("coverage_", cond_name)]] = DataTrack(range = bw_ranges[[cond_name]], # <--- adds a track
+                                               genome = "mm39",                              # (.bw coverage)
+                                               chromosome = as.character(seqnames(gr)),
+                                               name = paste0(cond_name),
+                                               type = "histogram",
+                                               col.histogram = "darkgoldenrod",
+                                               fill.histogram = "darkgoldenrod3",
+                                               background.title = "indianred4",
+                                               ylim=c(0,max_y)) # <-- sets maximal y value
+  }
+  
+  # load the annotation track
+  
+  anno_selection <- subsetByOverlaps(anno, window)
+  
+  # ensure that only main isoform is shown (if needed)
+  if(!all_isoforms){
+    anno_selection <- filter(as.data.frame(anno_selection), grepl("appris_principal_1", tag)) %>%  
+                            makeGRangesFromDataFrame(keep.extra.columns = T)
+  }
+  # turn the annotation into a txdb object
+  anno_selection <- makeTxDbFromGRanges(anno_selection)
+  
+  geneTrack <- GeneRegionTrack(anno_selection,
+                               genome = "mm39",
+                               chromosome = as.character(seqnames(gr)),
+                               name = "gencode.vM38",
+                               transcriptAnnotation = "symbol",
+                               background.title = "indianred4",
+                               col.group = "black",
+                               showId = TRUE,
+                               just.group = "above",
+                               fill = "deepskyblue1",
+                               col = "darkblue",
+                               collapseTranscripts = F,  # or "longest", "gene"
+                               stacking = "full",            # or "dense", "full"
+                               arrowHeadWidth = 10)
+  
+  gene(geneTrack) <- strsplit(gene(geneTrack),".",fixed=T) %>% sapply("[[",1)
+  tryCatch(
+    mysymbols <- unlist(mapIds(org.Mm.eg.db, gene(geneTrack), 
+                               "SYMBOL", 
+                               "ENSEMBL", 
+                               multiVals = "first")),
+           error=function(e){mysymbols <<- setNames(rep(gene, length(gene(geneTrack))), gene(geneTrack))})
+  
+  symbol(geneTrack) <- mysymbols[gene(geneTrack)]
+  # ↓ ↓ ↓ ↓  adds a track (annotation)
+  track_list[["gene_track"]] = geneTrack #<---- adds annotation track
+  
+  # lookup for options here:
+  # https://genome.ucsc.edu/cgi-bin/hgTables?command=start
+  
+  # # retrieve a conservation track
+  # conservation <- UcscTrack(genome = "mm39", chromosome = seqnames(window), 
+  #                         track = "Conservation", 
+  #                         table = "phastCons35way",
+  #                         from = start(window), to = end(window), trackType = "DataTrack", 
+  #                         start = "start", end = "end", data = "value",
+  #                         type = "hist", window = "auto", 
+  #                         col.histogram = "darkblue", 
+  #                         fill.histogram = "dodgerblue4",
+  #                         background.title = "indianred4",
+  #                         ylim = c(0, 1), name = "Conservation")
+  # 
+  # # ↓ ↓ ↓ ↓  adds a track (conservation)
+  # track_list[["conservation"]] = conservation
+  # 
+  # # retrieve a GC-content track
+  # 
+  # gc_content <- UcscTrack(genome = "mm39", chromosome = seqnames(window), 
+  #                      track = "GC Percent", table = "gc5BaseBw",
+  #                      from = start(window), to = end(window), trackType = "DataTrack", 
+  #                      start = "start", end = "end", data = "value",
+  #                      type = "hist", window = "auto", 
+  #                      fill.histogram = "black", col.histogram = "black",
+  #                      background.title = "indianred4",
+  #                      ylim = c(30, 70), name = "GC Percent")
+  # 
+  # # ↓ ↓ ↓ ↓  adds a track (gc content)
+  # track_list[["gc_content"]] = gc_content
+  print(names(track_list))
+  track_list_hl <- HighlightTrack( # <----- adds highlight track
+                              trackList = track_list[3:length(track_list)],
+                              start = start(gr), width = width(gr),
+                              chromosome = as.character(seqnames(gr))
+                              )
+  
+  plotTracks(list(track_list[[1]], track_list[[2]], track_list_hl),
+             from = start(window),
+             to = end(window))
+  }
+run_gviz(ranges[6,], all_isoforms=F)
+run_gviz(ranges[6,], all_isoforms=F, arrow = F)
+
+```
+
+# Save browsershots
+
+## Complete function for .pdf
+
+```{r}
+#  Plotting function
+run_gviz <- function(range, all_isoforms=T, arrow=T){
+
+# prepare data
+  # turn df row into gr object
+  gr<-makeGRangesFromDataFrame(range, keep.extra.columns = T)
+  
+  # define window size
+  window <- GRanges(seqnames = seqnames(gr),
+                    ranges = IRanges(start = start(gr) - width(gr)*2,
+                                     end = end(gr) + width(gr)*2),
+                    strand = strand(gr)
+                    )
+  genome(window)="mm39"
+  # import bigwig files (only region of interest)
+  bw_ranges = list()
+  max_y = 0 # <-- create a maximal coverage value variable
+  for(cond_name in conditions){
+    bw_ranges[[cond_name]] <- import(paste0(path, "bigwig_files\\", cond_name, "_merged", ".bw"), 
+                        which = window, as = "GRanges")
+    max_y <- max(max_y, bw_ranges[[cond_name]]$score) # <-- update the maximal coverage if needed
+  }
+  
+# ------------------------------------define tracks--------------------------------
+  track_list = list()  
+  
+  
+   # ↓ ↓ ↓ ↓  adds a track (chromosome position)
+  track_list[["ideogram"]] = IdeogramTrack(genome = unique(genome(window)), chromosome = seqnames(window))
+  # ↓ ↓ ↓ ↓ adds a track (genomic coordinates)
+  track_list[["gen_coord"]] = GenomeAxisTrack(background.title = "indianred4")
+  # # ↓ ↓ ↓ ↓  adds a track (range+direction)
+  if(arrow==T){
+  track_list[["arrow"]] = AnnotationTrack(gr, name = gr$gene_name,
+                                          background.title = "indianred4", 
+                                          fontsize=15,
+                                          rotation.title=0)}
+  
+  # load the coverage tracks
+  for(cond_name in conditions){
+  # ↓ ↓ ↓ ↓  adds a track (read coverage for each condition)
+    track_list[[paste0("coverage_", cond_name)]] = DataTrack(range = bw_ranges[[cond_name]], # <--- adds a track
+                                               genome = "mm39",                              # (.bw coverage)
+                                               chromosome = as.character(seqnames(gr)),
+                                               name = paste0(cond_name),
+                                               type = "histogram",
+                                               fontsize=16,
+                                               col.histogram = "darkgoldenrod",
+                                               fill.histogram = "darkgoldenrod3",
+                                               background.title = "indianred4",
+                                               ylim=c(0,max_y)) # <-- sets maximal y value
+  }
+  
+  # load the annotation track
+  
+  anno_selection <- subsetByOverlaps(anno, window)
+  
+  # ensure that only main isoform is shown (if needed)
+  if(!all_isoforms){
+    anno_selection1 <- filter(as.data.frame(anno_selection), grepl("appris_principal", tag)) %>%  
+                            makeGRangesFromDataFrame(keep.extra.columns = T)
+    if(length(anno_selection1)>0){anno_selection <- anno_selection1}
+  }
+  # turn the annotation into a txdb object
+  anno_selection <- makeTxDbFromGRanges(anno_selection)
+  
+  geneTrack <- GeneRegionTrack(anno_selection,
+                               genome = "mm39",
+                               chromosome = as.character(seqnames(gr)),
+                               name = "gencode.vM38",
+                               transcriptAnnotation = "symbol",
+                               background.title = "indianred4",
+                               col.group = "black",
+                               showId = TRUE,
+                               fontsize=10,
+                               fontsize.group=16,
+                               just.group = "above",
+                               fill = "deepskyblue1",
+                               col = "darkblue",
+                               collapseTranscripts = F,
+                               stacking = "full",            
+                               arrowHeadWidth = 10)
+  
+  gene(geneTrack) <- strsplit(gene(geneTrack),".",fixed=T) %>% sapply("[[",1)
+  
+  tryCatch(
+    mysymbols <- unlist(mapIds(org.Mm.eg.db, gene(geneTrack), 
+                               "SYMBOL", 
+                               "ENSEMBL", 
+                               multiVals = "first")),
+           error=function(e){mysymbols <<- setNames(rep(gene, length(gene(geneTrack))), gene(geneTrack))})
+  
+  symbol(geneTrack) <- mysymbols[gene(geneTrack)]
+  # ↓ ↓ ↓ ↓  adds a track (annotation)
+  track_list[["gene_track"]] = geneTrack #<---- adds annotation track
+  
+  # lookup for options here:
+  # https://genome.ucsc.edu/cgi-bin/hgTables?command=start
+  
+  # retrieve a conservation track
+  conservation <- UcscTrack(genome = "mm39", chromosome = seqnames(window),
+                          track = "Conservation",
+                          table = "phastCons35way",
+                          from = start(window), to = end(window), trackType = "DataTrack",
+                          start = "start", end = "end", data = "value",
+                          type = "hist", window = "auto",
+                          col.histogram = "darkblue",
+                          fill.histogram = "darkblue",
+                          fontsize=12,
+                          background.title = "indianred4",
+                          ylim = c(0, 1), name = "Conservation")
+
+  # ↓ ↓ ↓ ↓  adds a track (conservation)
+  track_list[["conservation"]] = conservation
+
+  # retrieve a GC-content track
+
+  gc_content <- UcscTrack(genome = "mm39", chromosome = seqnames(window),
+                       track = "GC Percent", table = "gc5BaseBw",
+                       from = start(window), to = end(window), trackType = "DataTrack",
+                       start = "start", end = "end", data = "value",
+                       type = "hist", window = "auto",
+                       fontsize=13,
+                       fill.histogram = "black", col.histogram = "black",
+                       background.title = "indianred4",
+                       ylim = c(30, 70), name = "GC Percent")
+
+  # ↓ ↓ ↓ ↓  adds a track (gc content)
+  track_list[["gc_content"]] = gc_content
+  print(names(track_list))
+  track_list_hl <- HighlightTrack( # <----- adds highlight track
+                              trackList = track_list[3:length(track_list)],
+                              start = start(gr), width = width(gr),
+                              chromosome = as.character(seqnames(gr))
+                              )
+sizes = c(1, 1, 1, 5, 5, 1, 2, 2)
+if(all_isoforms){sizes=c(1, 1, 1, 5, 5, 3, 2, 2)}
+if(!arrow){sizes=sizes[2:length(sizes)]}
+
+  plotTracks(list(track_list[[1]], track_list[[2]], track_list_hl),
+             from = start(window),
+             to = end(window),
+             sizes = sizes)
+  }
+
+```
+
+## Show browsershots
+
+::: panel-tabset
+```{r}
+#| output: asis
+
+
+for(i in 1:length(ranges$seqnames)){
+      cat("\n####", ranges[i,]$gene_name, "\n")
+      ## Content level3 ##
+      filename = paste0(path, "pdf_browsershots\\", ranges[i,]$gene_name, "_", ranges[i,]$width, ".png")
+      if(!file.exists(filename)){
+        png(filename, width = 2100, height =1700, res=200)  # adjust size if needed
+        run_gviz(ranges[i,], all_isoforms=F)
+        dev.off()
+        img = image_read(filename)
+      } else{img = image_read(filename)}
+      res <- knit_child(text = c("```{r}",
+                                   "#| echo: false",
+                                   "img",
+                                   "```"
+                                   ), quiet = TRUE)
+      cat(res, sep = "\n")
+      ## End of content level3 ##
+      cat("\n\n")
+    }
+
+```
+:::
+
+## Add iCLIP track
+
+```{r, include=F}
+#  Plotting function
+run_gviz <- function(range, highlight="arrow"){
+
+# prepare data
+  # turn df row into gr object
+  gr<-makeGRangesFromDataFrame(range, keep.extra.columns = T)
+  
+  genome(gr)="mm39"
+  # define window size
+  window <- GRanges(seqnames = seqnames(gr),
+                    ranges = IRanges(start = start(gr) - width(gr)*2,
+                                     end = end(gr) + width(gr)*2),
+                    strand = strand(gr)
+                    )
+  genome(window)="mm39"
+  # import bigwig files (only region of interest)
+  bw_ranges = list()
+  max_y = 0 # <-- create a maximal coverage value variable
+  for(cond_name in conditions){
+    bw_ranges[[cond_name]] <- import(paste0(path, "bigwig_files\\", cond_name, "_merged", ".bw"), 
+                        which = window, as = "GRanges")
+    max_y <- max(max_y, bw_ranges[[cond_name]]$score) # <-- update the maximal coverage if needed
+  }
+  
+
+# define tracks
+  track_list = list()  
+  
+  track_list = append(track_list, IdeogramTrack(genome = unique(genome(window)), chromosome = seqnames(gr))) # <------ adds a track (chromosome scheme)
+  track_list = append(track_list, GenomeAxisTrack()) # <----- adds a track (genomic coordinates)
+  if(highlight %in% c("arrow", "both")){
+    track_list = append(track_list, AnnotationTrack(gr, name = gr$gene_name))} # <----- adds a track (range+direction)
+  
+  # load the coverage tracks
+  for(cond_name in conditions){
+  # append coverage of each condition to the track list
+    track_list <- append(track_list, DataTrack(range = bw_ranges[[cond_name]], # <--- adds a track
+                                               genome = "mm39",                # (.bw coverage)
+                                               chromosome = as.character(seqnames(gr)),
+                                               name = paste0(cond_name),
+                                               type = "histogram",
+                                               col.histogram = "grey",
+                                               fill.histogram = "grey",
+                                               background.title = "indianred4",
+                                               col.title = "black",
+                                               ylim=c(0,max_y))) # <-- sets maximal y value
+  }
+  
+  # load the annotation track
+  
+  anno_selection <- subsetByOverlaps(anno, window) # filters the annotation 
+  anno_selection <- makeTxDbFromGRanges(anno_selection) # makes txdb
+  
+  geneTrack <- GeneRegionTrack(anno_selection,
+                               genome = "mm39",
+                               chromosome = as.character(seqnames(gr)),
+                               name = "gencode.vM38",
+                               transcriptAnnotation = "gene_name",  # or "gene_id"
+                               nshowId = F,
+                               background.title = "indianred4",
+                               col.title = "black",
+                               fill = "lightblue",
+                               col = "darkblue",
+                               collapseTranscripts = F,  # or "longest", "gene"
+                               stacking = "full",            # or "dense", "full"
+                               arrowHeadWidth = 10)
+  
+  gene(geneTrack) <- strsplit(gene(geneTrack),".",fixed=T) %>% sapply("[[",1)
+  tryCatch(
+    mysymbols <- unlist(mapIds(org.Mm.eg.db, gene(geneTrack), 
+                               "SYMBOL", 
+                               "ENSEMBL", 
+                               multiVals = "first")),
+           error=function(e){mysymbols <<- setNames(rep(gene, length(gene(geneTrack))), gene(geneTrack))})
+  
+  symbol(geneTrack) <- mysymbols[gene(geneTrack)]
+  track_list = append(track_list, geneTrack) #<---- adds annotation track
+  
+  # iCLIP peaks for ZC3H14
+  for(cond_name in conditions){
+  peaks <- import(paste0(path, "bed_files\\ZC3H14_", cond_name, "_pureclip_sites.bed"), format="bed", which=window) 
+  peak_track <- AnnotationTrack(range=peaks, name="iCLIP peaks", stacking="dense", fill="lightgreen", lwd=1, col="chartreuse2", fontsize=10, background.title="indianred4")
+  track_list = append(track_list, peak_track)
+  }
+  
+  # load the highlight track
+  if(highlight %in% c("both", "colored_area")){
+  track_list <- HighlightTrack( # <----- adds highlight track
+                              trackList = track_list,
+                              start = start(gr), width = width(gr),
+                              chromosome = as.character(seqnames(gr))
+                              )}
+  
+  plotTracks(track_list,
+             from = start(window),
+             to = end(window))
+  }
+for(i in 1:length(ranges$seqnames)){
+run_gviz(ranges[i,])
+}
+
+
+```
+
+```{r}
+#  Plotting function
+run_gviz <- function(range, all_isoforms=T, arrow=T){
+
+# prepare data
+  # turn df row into gr object
+  gr<-makeGRangesFromDataFrame(range, keep.extra.columns = T)
+  
+  # define window size
+  window <- GRanges(seqnames = seqnames(gr),
+                    ranges = IRanges(start = start(gr)-50,
+                                     end = end(gr)+50),
+                    strand = strand(gr)
+                    )
+  genome(window)="mm39"
+  # import bigwig files (only region of interest)
+  bw_ranges = list()
+  max_y = 0 # <-- create a maximal coverage value variable
+  for(cond_name in conditions){
+    bw_ranges[[cond_name]] <- import(paste0(path, "bigwig_files\\", cond_name, "_merged", ".bw"), 
+                        which = window, as = "GRanges")
+    max_y <- max(max_y, bw_ranges[[cond_name]]$score) # <-- update the maximal coverage if needed
+  }
+  
+# ------------------------------------define tracks--------------------------------
+  track_list = list()  
+  
+  
+   # ↓ ↓ ↓ ↓  adds a track (chromosome position)
+  track_list[["ideogram"]] = IdeogramTrack(genome = unique(genome(window)), chromosome = seqnames(window))
+  # ↓ ↓ ↓ ↓ adds a track (genomic coordinates)
+  track_list[["gen_coord"]] = GenomeAxisTrack(background.title = "indianred4")
+  # # ↓ ↓ ↓ ↓  adds a track (range+direction)
+  
+  # load the coverage tracks
+  for(cond_name in conditions){
+  # ↓ ↓ ↓ ↓  adds a track (read coverage for each condition)
+    track_list[[paste0("coverage_", cond_name)]] = DataTrack(range = bw_ranges[[cond_name]], # <--- adds a track
+                                               genome = "mm39",                              # (.bw coverage)
+                                               chromosome = as.character(seqnames(gr)),
+                                               name = paste0(cond_name),
+                                               type = "histogram",
+                                               fontsize=10,
+                                               col.histogram = "darkgoldenrod",
+                                               fill.histogram = "darkgoldenrod3",
+                                               background.title = "indianred4",
+                                               ylim=c(0,max_y)) # <-- sets maximal y value
+  }
+  
+  # load the annotation track
+  
+  anno_selection <- subsetByOverlaps(anno, window)
+  
+  # ensure that only main isoform is shown (if needed)
+  if(!all_isoforms){
+    anno_selection1 <- filter(as.data.frame(anno_selection), grepl("appris_principal", tag)) %>%  
+                            makeGRangesFromDataFrame(keep.extra.columns = T)
+    if(length(anno_selection1)>0){anno_selection <- anno_selection1}
+  }
+  # turn the annotation into a txdb object
+  anno_selection <- makeTxDbFromGRanges(anno_selection)
+  
+  geneTrack <- GeneRegionTrack(anno_selection,
+                               genome = "mm39",
+                               chromosome = as.character(seqnames(gr)),
+                               name = "gencode.vM38",
+                               transcriptAnnotation = "symbol",
+                               background.title = "indianred4",
+                               col.group = "black",
+                               showId = TRUE,
+                               fontsize=10,
+                               fontsize.group=10,
+                               just.group = "above",
+                               fill = "deepskyblue1",
+                               col = "darkblue",
+                               collapseTranscripts = F,  # or "longest", "gene"
+                               stacking = "full",            # or "dense", "full"
+                               arrowHeadWidth = 10)
+  
+  gene(geneTrack) <- strsplit(gene(geneTrack),".",fixed=T) %>% sapply("[[",1)
+  
+  tryCatch(
+    mysymbols <- unlist(mapIds(org.Mm.eg.db, gene(geneTrack), 
+                               "SYMBOL", 
+                               "ENSEMBL", 
+                               multiVals = "first")),
+           error=function(e){mysymbols <<- setNames(rep(gr$gene_name[[1]], length(gene(geneTrack))), gene(geneTrack))})
+  
+  symbol(geneTrack) <- mysymbols[gene(geneTrack)][1]
+  # ↓ ↓ ↓ ↓  adds a track (annotation)
+  track_list[["gene_track"]] = geneTrack 
+  
+  
+  # ↓ ↓ ↓ ↓  adds a track (iCLIP)
+  for(cond_name in conditions){
+  peaks <- import(paste0(path, "bed_files\\ZC3H14_", cond_name, "_pureclip_sites.bed"), format="bed", which=window) 
+  peak_track <- AnnotationTrack(range=peaks, name=paste0(cond_name, "\nZC3H14_iCLIP"), stacking="dense", fill="black", lwd=1, col="violet", fontsize=10, background.title="indianred4")
+  track_list[[paste0(cond_name, "_ZC3H14_iCLIP")]] = peak_track
+  }
+  
+  
+  # track_list_hl <- HighlightTrack( # <----- adds highlight track
+  #                             trackList = track_list[3:length(track_list)],
+  #                             start = start(gr), width = width(gr),
+  #                             chromosome = as.character(seqnames(gr))
+  #                             )
+
+  sizes=c(1,1,1,1,1.5,2,2)
+  plotTracks(track_list,
+             from = start(window),
+             to = end(window),
+             sizes=sizes)
+  }
+range=GRanges(seqnames="chr7",ranges="29166286-29167780",strand="-")
+range$gene_name = "Spred3"
+
+run_gviz(as.data.frame(range), all_isoforms=F)
+```
+
+```{r}
+
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+
+```
