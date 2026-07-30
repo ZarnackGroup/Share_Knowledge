@@ -1,0 +1,927 @@
+---
+title: "Debugging in R: How to Read and Fix Error Messages"
+date: last-modified
+author: 
+- name:  "Melina Klostermann"
+title-block-banner: true
+format: 
+    html:
+        theme: litera
+        self-contained: true
+        code-fold: false
+        toc: true
+        number-sections: false
+        anchor-sections: false
+execute:
+  include: true
+  eval: true
+  echo: true
+  error: true
+editor: 
+  markdown: 
+    wrap: 100
+---
+
+# Learning goals
+
+After this session you should be able to:
+
+* read and interpret R error messages
+* identify common causes of errors
+* use `?function` to read documentation
+* search for solutions online
+* ask clear programming questions
+
+---
+
+# 1. Errors are Normal
+
+Even experienced programmers constantly see errors.
+
+Errors usually mean one of three things:
+
+1. R **cannot find something**
+2. R **received the wrong type of input**
+3. R **the syntax is incorrect**
+
+The key skill is **reading the error message carefully**.
+
+---
+
+# 2. Anatomy of an Error Message
+
+Run the following code:
+
+```{r}
+x <- c(1,2,3)
+mean(xyz)
+```
+
+Example error:
+
+```
+Error in mean(xyz) : object 'xyz' not found
+```
+
+How to read this:
+
+| Part                     | Meaning                               |
+| ------------------------ | ------------------------------------- |
+| `Error in mean(xyz)`     | the function where the error happened |
+| `object 'xyz' not found` | the actual problem                    |
+
+**Interpretation:**
+R cannot find an object named `xyz`.
+
+**Solution:**
+Use the same object name as you used before.
+```{r}
+x <- c(1,2,3)
+mean(x)
+```
+
+---
+
+**Exercise 1: Fix the Error**
+
+```{r}
+numbers <- c(3,7,10,2)
+mean(number)
+```
+
+What is the problem? And what would be the correct code?
+
+---
+
+# 3. Typical Errors
+
+---
+
+## 3.1 Object Not Found
+
+This is one of the **most common beginner errors**.
+
+```{r}
+y + 5
+```
+
+Why does this fail?
+
+<details>
+<summary>Solution</summary>
+
+`y` has never been defined.
+
+Define it first:
+
+```r
+y <- 10
+y + 5
+```
+
+</details>
+
+---
+
+**Exercise 2: Fix the Object Not Found Error**
+
+What is wrong with this code? Fix it so it runs without an error.
+
+```{r}
+my_values <- c(4, 8, 15, 16, 23, 42)
+sum(my_value)
+```
+
+---
+
+**Exercise 3: Define the Missing Object**
+
+This code produces an error because something is missing. Add the necessary line to make it work.
+
+```{r}
+result <- total_count / 100
+```
+
+---
+
+## 3.2 Syntax Errors
+
+A syntax error means R cannot understand the **structure** of the code — something is missing or in the wrong place.
+
+```{r}
+x <- c(1, 2, 3
+mean(x)
+```
+
+Typical message:
+
+```
+Error: unexpected symbol in "mean"
+```
+
+Common causes:
+
+| Problem              | Example                    |
+|----------------------|----------------------------|
+| Missing `)`          | `c(1, 2, 3`                |
+| Missing `]`          | `df[1, 2`                  |
+| Missing comma        | `c(1 2 3)`                 |
+| Unclosed quote       | `x <- "hello`              |
+| Missing `+` in ggplot| Next line starts with `geom_`|
+
+Tip: R Studio highlights unclosed brackets and quotes. Look for the red underlines or unexpected cursor position.
+
+---
+
+**Exercise 4: Fix the Syntax Errors**
+
+Each code block below contains a syntax error. Find and fix it.
+
+**Case 1:**
+
+```{r}
+my_vec <- c(10, 20, 30
+sum(my_vec)
+```
+
+**Case 2:**
+
+```{r}
+df <- data.frame(
+  gene = c("A", "B", "C")
+  value = c(1, 2, 3)
+)
+```
+
+**Case 3:**
+
+```{r}
+greeting <- "Hello
+print(greeting)
+```
+
+---
+
+## 3.3 Package or Library Not Found
+
+Another very common "not found" error occurs when you try to use a function from a package that is not available.
+
+```{r}
+library(skimr)
+```
+
+
+This means either the package is **not installed**, or it is installed but **not loaded**.
+
+
+**Installing vs. Loading**
+
+| Action      | Command                    | When needed                        |
+|-------------|----------------------------|------------------------------------|
+| **Install** | `install.packages("pkg")`  | Once, to download the package      |
+| **Load**    | `library(pkg)`             | Every R session where you use it   |
+
+Installing puts the package on your computer. Loading makes it available in the current session.
+
+A common mistake is to install a package but forget to load it:
+
+```{r}
+# Installed but not loaded — this will fail:
+skim(data.frame(x = c(1, 2, 3), y = c(4, 5, 6)))
+```
+
+`skimr` is a useful package that gives a quick summary of a data frame.
+
+Fix: always install & load the package first. 
+
+```{r}
+install.packages("skimr")
+library(skimr)
+skim(df)
+```
+
+Note: You only need to install a package once on your computer. But you need to load the library everytime you open Rstudio or a new session.
+
+**Exercise 5: Why is it working now?**
+```{r}
+skim(df)
+```
+
+---
+
+**CRAN vs. Bioconductor**
+
+There are two main repositories for R packages:
+
+**CRAN** (Comprehensive R Archive Network)
+
+* The default repository for general-purpose R packages
+* Install with `install.packages("packagename")`
+
+**Bioconductor**
+
+* A specialized repository for **bioinformatics** packages (e.g. DESeq2, edgeR, GenomicRanges)
+* Has its own installer and release cycle tied to R versions
+* Install with the `BiocManager` package:
+
+```r
+install.packages("BiocManager")
+BiocManager::install("packagename")
+```
+
+---
+
+**Example: `install.packages()` Fails for a Bioconductor Package**
+
+Try running:
+
+```{r}
+install.packages("DESeq2")
+```
+
+You will likely see a warning like:
+
+```
+Warning: package 'DESeq2' is not available for this version of R
+```
+
+This happens because `DESeq2` is a **Bioconductor** package, not a CRAN package.
+
+The correct way to install it:
+
+```r
+install.packages("BiocManager")
+BiocManager::install("DESeq2")
+```
+---
+
+**Exercise 6: CRAN or Bioconductor?**
+
+For each package below, search online to find out whether it is available on **CRAN** or **Bioconductor**, then write the correct install command.
+
+| Package        | Repository | Install command |
+|----------------|------------|-----------------|
+| `dplyr`        |            |                 |
+| `edgeR`        |            |                 |
+| `ggplot2`      |            |                 |
+| `GenomicRanges`|            |                 |
+| `stringr`      |            |                 |
+
+Tip: search for `R package <packagename>` and check whether the result links to `cran.r-project.org` or `bioconductor.org`.
+
+---
+
+## 3.4 Function Not Found
+
+```{r}
+mutate(df, hello = "hello")
+```
+
+
+
+This error has exactly **two possible causes**:
+
+1. There is a **typo** in the function name
+2. The **package containing the function is not loaded**
+
+These look identical from the error message alone, so you need to investigate.
+
+**How to tell them apart:**
+
+* Search the function name with `?functionname` or online — if the function exists in a package that you have not loaded, the help page will either not appear or will tell you which package it belongs to.
+* Check your `library()` calls at the top of your script.
+
+---
+
+**Example A: Typo in the function name**
+
+```{r}
+x <- c(1, 3, 5, 7)
+squrt(x)
+```
+
+The function `squrt` does not exist. The correct name is `sqrt`.
+
+---
+
+**Example B: Package not loaded**
+
+```{r}
+counts <- data.frame(gene = c("A", "B", "C"), value = c(10, 5, 8))
+mutate(counts, log_value = log(value))
+```
+
+`mutate` exists — it is part of the `dplyr` package — but the package has not been loaded.
+
+Fix:
+
+```r
+library(dplyr)
+mutate(counts, log_value = log(value))
+```
+
+---
+
+**Exercise 7: Typo or Missing Library?**
+
+For each error below, decide: is it a **typo** or a **missing library**? Write down your reasoning and the fix.
+
+**Case 1:**
+
+```{r}
+x <- c(2, 4, 6, 8)
+Maen(x)
+```
+
+**Case 2:**
+
+```{r}
+df <- data.frame(a = c(1, 2, 3), b = c(4, 5, 6))
+select(df, a)
+```
+
+**Case 3:**
+
+```{r}
+x <- c(10, 20, 30)
+suM(x)
+```
+
+Tip: use `?functionname` to check whether a function exists. If the help page opens, the function is real — you may just need to load its package.
+
+---
+
+## 3.5 Reading Documentation
+
+You can open help pages directly in R.
+
+Example:
+
+```{r}
+?mean
+```
+
+Look for these sections:
+
+| Section     | Meaning                |
+| ----------- | ---------------------- |
+| Description | what the function does |
+| Usage       | how to call it         |
+| Arguments   | explanation of inputs  |
+| Examples    | runnable examples      |
+
+---
+
+**Exercise 8: Using Documentation**
+
+Find out:
+
+* What does `sd()` do?
+* What input does it require?
+
+Try:
+
+```{r}
+?sd
+```
+
+Then run:
+
+```{r}
+sd(c(1,4,6,10))
+```
+
+---
+
+**Exercise 9: Explore Three Functions**
+
+Use `?` to open the help page for each function below. For each one, write down:
+
+* What does it do?
+* What input does it require?
+* Run the example code and describe what the output means.
+
+**Function 1:** `round()`
+
+```{r}
+?round
+round(3.14159, digits = 2)
+```
+
+**Function 2:** `nchar()`
+
+```{r}
+?nchar
+nchar("Hello World")
+```
+
+**Function 3:** `seq()`
+
+```{r}
+?seq
+seq(from = 1, to = 10, by = 2)
+```
+
+---
+
+## 3.6 Wrong Function Inputs
+
+Functions can fail not only because of typos or missing packages, but also because you give them **the wrong inputs**. There are two common ways this happens:
+
+1. **Wrong column name** — you access a column that does not exist
+2. **Wrong argument name** — you use an argument that the function does not recognise
+
+---
+
+### 3.6.1 Wrong Column Name
+
+Data frame column names must match exactly — R is **case sensitive**.
+
+```{r}
+df <- data.frame(
+  gene = c("A", "B", "C"),
+  expression = c(5, 7, 3)
+)
+
+mean(df$Expression)
+```
+
+The column is called `expression`, not `Expression`. R returns `NULL` silently or an error depending on the context.
+
+Tip: always check column names first:
+
+```{r}
+names(df)
+```
+
+---
+
+### 3.6.2 Wrong Argument Name
+
+Functions have specific argument names. Using the wrong name causes R to ignore the argument or throw an error.
+
+```{r}
+x <- c(1, 5, NA, 9)
+mean(x, na_remove = TRUE)
+```
+
+Typical message:
+
+```
+Warning: In mean.default(x, na_remove = TRUE) :
+  argument 'na_remove' matched by none
+```
+
+The correct argument is `na.rm`, not `na_remove`. Use `?mean` to check.
+
+```r
+mean(x, na.rm = TRUE)
+```
+
+---
+
+**Exercise 10: Fix the Wrong Inputs**
+
+Each example below has a wrong input. Identify the problem and fix it.
+
+**Case 1:** Wrong column name
+
+```{r}
+counts_df <- data.frame(
+  SampleID = c("S1", "S2", "S3"),
+  ReadCount = c(1200, 850, 940)
+)
+
+mean(counts_df$readcount)
+```
+
+**Case 2:** Wrong argument name
+
+```{r}
+x <- c(3, 7, NA, 2, 5)
+sum(x, remove.na = TRUE)
+```
+
+Hint: use `?sum` to find the correct argument name.
+
+**Case 3:** Column does not exist at all
+
+```{r}
+genes <- data.frame(
+  name = c("TP53", "BRCA1"),
+  logFC = c(1.2, -0.8)
+)
+
+genes$pvalue
+```
+
+What does R return when you access a column that does not exist? Is this an error, a warning, or something else?
+
+---
+
+## 3.7 Wrong Input Type
+
+Some functions require numbers, others text, others data frames, and so on. Passing the wrong type causes an error.
+
+```{r}
+sqrt("hello")
+```
+
+
+This means that `sqrt()` expected a **numeric** input, but received **text** instead.
+
+**Useful helper functions to check what type you have**
+
+```{r}
+x <- "hello"
+class(x)
+is.numeric(x)
+str(x)
+```
+
+| Function       | What it tells you                              |
+|----------------|------------------------------------------------|
+| `class(x)`     | the type of the object (e.g. `"character"`, `"numeric"`, `"data.frame"`) |
+| `is.numeric(x)`| `TRUE` if numeric, `FALSE` otherwise           |
+| `str(x)`       | a compact overview of structure and type       |
+
+Common types in R:
+
+| Type        | Example                     |
+|-------------|-----------------------------|
+| `numeric`   | `x <- 3.14`                 |
+| `character` | `x <- "hello"`              |
+| `logical`   | `x <- TRUE`                 |
+| `data.frame`| `x <- data.frame(a = 1:3)`  |
+
+---
+
+**Exercise 11: What Type Is It?**
+
+For each object below, predict what `class()` will return, then run the code to check.
+
+```{r}
+a <- 42
+b <- "42"
+c <- TRUE
+d <- c(1, 2, 3)
+e <- data.frame(x = 1:3)
+
+class(a)
+class(b)
+class(c)
+class(d)
+class(e)
+```
+
+Now try using `a` and `b` with `sqrt()`. Which one throws an error and why?
+
+```{r}
+sqrt(a)
+sqrt(b)
+```
+
+---
+
+**Exercise 12: Fix the Type Error**
+
+The code below produces a type error. Use `class()` to diagnose the problem, then fix it.
+
+```{r}
+counts <- c("10", "20", "30")
+mean(counts)
+```
+
+Hint: look at what `class(counts)` returns. To convert text to numbers use `as.numeric()`.
+
+---
+
+## 3.8 File or Path Not Found
+
+A very common error when reading data files is:
+
+```
+Error in file(file, "rt") : cannot open the connection
+In addition: Warning message:
+In file(file, "rt") : cannot open file 'data/counts.csv': No such file or directory
+```
+
+This means R cannot find the file at the path you provided.
+
+**Common causes:**
+
+| Cause | Example |
+|---|---|
+| Wrong file name | `counts.csv` instead of `Counts.csv` |
+| Wrong folder | file is in `data/` but you wrote `input/` |
+| Working directory is not where you think | R is looking in a different folder |
+| Path separators wrong on Windows | `data\counts.csv` instead of `data/counts.csv` |
+
+**Check your working directory:**
+
+```{r}
+getwd()
+```
+
+This shows where R is currently looking for files. Make sure your file path is relative to this location, or use an absolute path.
+
+**Windows users: slash direction**
+
+On Windows, file paths in File Explorer use backslashes:
+
+```
+C:\Users\student\data\counts.csv
+```
+
+R requires **forward slashes** or **double backslashes**:
+
+```r
+# These both work in R on Windows:
+read.csv("C:/Users/student/data/counts.csv")
+read.csv("C:\\Users\\student\\data\\counts.csv")
+
+# This does NOT work:
+read.csv("C:\Users\student\data\counts.csv")
+```
+
+**Tip:** In RStudio, use the **Files** pane to navigate to your file, then click *More > Set As Working Directory* to set the right working directory automatically.
+
+**Exercise 13: Fix the File Path**
+
+The code below throws a "cannot open file" error. What are three things you would check to fix it?
+
+```{r}
+counts <- read.csv("Data/gene_counts.CSV")
+```
+
+---
+
+# 4. Error Solving Strategies
+
+---
+
+## 4.1 Strategy for Debugging
+
+When you see an error:
+
+1. **Read the error message carefully**
+2. Identify **which function caused it**
+3. Check:
+
+   * variable names
+   * column names
+   * argument names
+4. Look at documentation
+
+---
+
+## 4.2 Searching for Errors Online
+
+Most programming problems have already been solved.
+
+Good places to search:
+
+* Stack Overflow
+* Bioconductor Support
+* RStudio Community
+* package documentation
+
+Good search query example:
+
+```
+R error "object not found" dplyr mutate
+```
+
+Include:
+
+* the **exact error message**
+* the **function name**
+* the **package name**
+
+---
+
+## 4.3 Asking Good Questions
+
+When asking for help include:
+
+1. the **exact error message**
+2. the **code that caused the error**
+3. a **minimal example**
+4. what you already tried
+
+Example:
+
+Bad question:
+
+> My R code does not work.
+
+Better question:
+
+> I get the error `object 'gene' not found` when running:
+>
+> ```r
+> mean(df$gene)
+> ```
+>
+> My data frame is:
+>
+> ```r
+> df <- data.frame(expression = c(3,4,5))
+> ```
+
+---
+
+## 4.4 Using ChatGPT for Debugging
+
+When asking an AI assistant include:
+
+* the full error message
+* the code
+* expected output
+
+Example prompt:
+
+```
+I get this error in R:
+
+Error in mean(number) : object 'number' not found
+
+My code is:
+
+numbers <- c(3,7,10)
+mean(number)
+
+What causes this error?
+```
+
+---
+
+## 4.5 Final Exercise: Debug the Script
+
+This script contains multiple errors.
+
+```{r}
+data <- data.frame(
+  gene = c("A","B","C"),
+  counts = c(10,5,7)
+)
+
+mean(data$count)
+
+sd(data$counts
+
+sqrt("25")
+```
+
+Tasks:
+
+1. run the code
+2. read the errors
+3. fix all problems
+
+<details>
+<summary>Solution</summary>
+
+```r
+data <- data.frame(
+  gene = c("A","B","C"),
+  counts = c(10,5,7)
+)
+
+mean(data$counts)
+
+sd(data$counts)
+
+sqrt(25)
+```
+
+</details>
+
+---
+
+## 4.6 Final Exercise: Wrong Package and Wrong Column
+
+The script below has two problems: a package issue and a column name issue. Fix both.
+
+```{r}
+library(dplyr)
+
+patients <- data.frame(
+  PatientID = c("P1", "P2", "P3"),
+  Age = c(34, 45, 29),
+  Score = c(8.2, 6.5, 9.1)
+)
+
+filter(patients, age > 30)
+```
+
+Tasks:
+
+1. Run the code and read the error
+2. Identify both problems
+3. Fix the script so it runs correctly
+
+<details>
+<summary>Solution</summary>
+
+```r
+# dplyr is already loaded so that is fine.
+# The column is called "Age" not "age" — column names are case sensitive.
+
+library(dplyr)
+
+patients <- data.frame(
+  PatientID = c("P1", "P2", "P3"),
+  Age = c(34, 45, 29),
+  Score = c(8.2, 6.5, 9.1)
+)
+
+filter(patients, Age > 30)
+```
+
+</details>
+
+---
+
+## 4.7 Final Exercise: Find the Error Type
+
+For each error message below, identify: what **type** of error is it, and what is the most likely fix?
+
+**Error 1:**
+```
+Error: object 'gene_counts' not found
+```
+
+**Error 2:**
+```
+Error in library(DESeq2) : there is no package called 'DESeq2'
+```
+
+**Error 3:**
+```
+Error in sqrt(x) : non-numeric argument to mathematical function
+```
+
+**Error 4:**
+```
+Error: unexpected symbol in "mean(x"
+```
+
+**Error 5:**
+```
+Error: could not find function "ggplot"
+```
+
+For each one, write:
+
+- The error type (from section 3)
+- A likely cause
+- The fix you would try first
+
+---
+
+# Take-home Message
+
+Programming is not about avoiding errors.
+
+It is about **learning how to interpret them quickly**.

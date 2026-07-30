@@ -1,0 +1,129 @@
+---
+title: "How to create a Quarto document?"
+date: last-modified
+author: 
+    - name:  "Sri Sankaran"
+title-block-banner: true
+format: 
+    html:
+        theme: litera
+        self-contained: true
+        code-fold: false
+        toc: true
+        number-sections: false
+        anchor-sections: false
+execute:
+  include: true
+  eval: false
+  echo: true
+  error: false
+editor: 
+  markdown: 
+    wrap: 100
+---
+
+# Quarto
+
+Quarto is an open-source scientific and technical publishing system. Quarto files can be rendered
+into HTML, PDF or word files as reports.
+
+# Text formatting
+
+-   *italics*, **bold**, ***bold italics***.
+-   Programming commands presented exactly as written: `verbatim code`
+-   Headings can be created using `#`.
+
+# Execute codes
+
+Note: The symbol `#` is used to add comments within a code chunk. Comments are not executed.
+
+## Addition
+
+```{r}
+# Adding two numbers using R
+1+1
+```
+
+## Subtraction
+
+```{r}
+# Subtracting two numbers using R
+10-5
+```
+
+# Good Practices
+
+Coding is not only about obtaining results, but also about producing results that are reproducible,
+transparent, and well documented.
+
+-   A Quarto document should always run from top to bottom without manual intervention.
+-   Use meaningful section headings. Clear headings make your document easier to navigate and
+    understand.
+-   Avoid mixing unrelated tasks within the same code chunk.
+-   One of the major strengths of R is the availability of numerous open-source packages for
+    statistical and data analysis. These packages must be loaded before use. A good practice is to
+    **create a dedicated setup chunk at the beginning of your document** where all required packages
+    are loaded.
+-   Packages are **installed once** using `install.packages()`, but must be **loaded in every new
+    session** using `library()` function.
+-   The same principles applies to parameters that will be reused throughout the analysis. For
+    example, define a variable for pvalue cutoff like `pval -> 0.05` or predefined colors for
+    conditions in plots or commonly used file paths. use during plotting.
+-   Keep code clean and readable.
+-   Add short comments where necessary to explain non-obvious steps.
+-   Save and render your files frequently. This helps detect errors early and ensures that the
+    analysis runs from start to finish without problems.
+-   Use informative object names. (e.g., `normalized_read_counts_df` instead of `df1`)
+-   When performing transformations or filtering, create new objects instead of modifying the
+    original dataset. This preserves the original data and improves reproducibility.
+-   Always use `sessionInfo()` at the end of your document to record the R versions and the versions
+    of all loaded packages.
+
+## Set up your document
+
+At the beggining of the document, create a **setup code chunk** where you load, for example, all the
+packages that will be used in the analysis.
+
+```{r}
+library(dplyr)
+library(ggplot2)
+```
+
+## Name code chunks for easier navigation
+
+Assign descriptive labels to code chunk to remember the purpose of each chunk for. For example, the
+code chunk below is labeled colors because it defines colors that will later be used in plots. You
+can write chunk options like code chunks labeliing using a sepcial comment symbol `#|`
+
+```{r}
+#| label: defining-colors
+
+wt <- "grey"
+mutant <- "purple"
+
+```
+
+## Customize your code chunks
+
+When you render your document, you may want to control how code and its output appear in the final
+report. This can be done by adding chunk options, which allow you to customize different components
+of a code chunk.
+
+For example, you may want to suppress messages or warnings that are not relevant for the reader.
+This can be achieved using options such as message = FALSE or warning = FALSE, which prevent these
+messages from appearing in the rendered document.
+
+```{r}
+#| label: loading_libraries
+#| message: FALSE
+library(dplyr)
+library(ggplot2)
+```
+
+For more information about Quarto, visit: <https://quarto.org/docs/guide/>
+
+# Session information
+
+```{r}
+sessionInfo()
+```

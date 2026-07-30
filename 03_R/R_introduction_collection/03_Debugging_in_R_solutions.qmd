@@ -1,0 +1,400 @@
+---
+title: "Debugging in R: Solutions"
+date: last-modified
+author: 
+- name:  "Melina Klostermann"
+title-block-banner: true
+format: 
+    html:
+        theme: litera
+        self-contained: true
+        code-fold: false
+        toc: true
+        number-sections: false
+        anchor-sections: false
+execute:
+  include: true
+  eval: true
+  echo: true
+  error: true
+editor: 
+  markdown: 
+    wrap: 100
+---
+
+This file contains solutions for all exercises from `03_Debugging_in_R.qmd`.
+
+---
+
+# Exercise 1: Fix the Error
+
+**Problem:** The object is named `numbers` but `mean(number)` uses `number` — a typo (missing `s`).
+
+```{r}
+numbers <- c(3, 7, 10, 2)
+mean(numbers)
+```
+
+---
+
+# Exercise 2: Fix the Object Not Found Error
+
+**Problem:** The object is named `my_values` but `sum(my_value)` is missing the final `s`.
+
+```{r}
+my_values <- c(4, 8, 15, 16, 23, 42)
+sum(my_values)
+```
+
+---
+
+# Exercise 3: Define the Missing Object
+
+**Problem:** `total_count` has never been defined. A value must be assigned first.
+
+```{r}
+total_count <- 500   # define the missing object with any appropriate value
+result <- total_count / 100
+result
+```
+
+---
+
+# Exercise 4: Fix the Syntax Errors
+
+**Case 1:** Missing closing parenthesis `)` in `c(10, 20, 30`.
+
+```{r}
+my_vec <- c(10, 20, 30)
+sum(my_vec)
+```
+
+**Case 2:** Missing comma `,` after the first element in `data.frame()`.
+
+```{r}
+df <- data.frame(
+  gene = c("A", "B", "C"),
+  value = c(1, 2, 3)
+)
+```
+
+**Case 3:** Unclosed string — the opening quote `"` for `"Hello` is never closed.
+
+```{r}
+greeting <- "Hello"
+print(greeting)
+```
+
+---
+
+# Exercise 5: Why Is It Working Now?
+
+`skim(df)` works here because `library(skimr)` was called earlier in the document, which loaded the `skimr` package into the current R session. Once a package is loaded with `library()`, all its functions — including `skim()` — are available for the rest of the session.
+
+```{r}
+library(skimr)
+df <- data.frame(x = c(1, 2, 3), y = c(4, 5, 6))
+skim(df)
+```
+
+---
+
+# Exercise 6: CRAN or Bioconductor?
+
+| Package         | Repository    | Install command                                 |
+|-----------------|---------------|-------------------------------------------------|
+| `dplyr`         | CRAN          | `install.packages("dplyr")`                     |
+| `edgeR`         | Bioconductor  | `BiocManager::install("edgeR")`                 |
+| `ggplot2`       | CRAN          | `install.packages("ggplot2")`                   |
+| `GenomicRanges` | Bioconductor  | `BiocManager::install("GenomicRanges")`         |
+| `stringr`       | CRAN          | `install.packages("stringr")`                   |
+
+Reminder: to use `BiocManager::install()`, first install BiocManager from CRAN if you have not already:
+
+```r
+install.packages("BiocManager")
+```
+
+---
+
+# Exercise 7: Typo or Missing Library?
+
+**Case 1:** `Maen(x)` — **Typo**. The function `Maen` does not exist. The correct name is `mean` (lowercase).
+
+```{r}
+x <- c(2, 4, 6, 8)
+mean(x)
+```
+
+**Case 2:** `select(df, a)` — **Missing library**. `select()` is a real function from the `dplyr` package, but the package has not been loaded.
+
+```{r}
+library(dplyr)
+df <- data.frame(a = c(1, 2, 3), b = c(4, 5, 6))
+select(df, a)
+```
+
+**Case 3:** `suM(x)` — **Typo**. R is case-sensitive; `suM` does not exist. The correct name is `sum` (all lowercase).
+
+```{r}
+x <- c(10, 20, 30)
+sum(x)
+```
+
+---
+
+# Exercise 8: Using Documentation
+
+`sd()` computes the **standard deviation** of a numeric vector. It requires a numeric vector as input (`x`). The optional argument `na.rm = TRUE` removes missing values before calculation.
+
+```{r}
+?sd
+sd(c(1, 4, 6, 10))
+```
+
+The result is approximately `3.83` — telling us how spread out the values are around their mean.
+
+---
+
+# Exercise 9: Explore Three Functions
+
+**Function 1: `round()`**
+
+* **What it does:** rounds numbers to a specified number of decimal places.
+* **Input required:** a numeric value or vector (`x`), and optionally the number of decimal places (`digits`, default `0`).
+* **Output:** `round(3.14159, digits = 2)` returns `3.14` — the number rounded to 2 decimal places.
+
+```{r}
+?round
+round(3.14159, digits = 2)
+```
+
+---
+
+**Function 2: `nchar()`**
+
+* **What it does:** counts the number of characters in each element of a character vector.
+* **Input required:** a character vector (`x`).
+* **Output:** `nchar("Hello World")` returns `11` — the number of characters (including the space) in the string.
+
+```{r}
+?nchar
+nchar("Hello World")
+```
+
+---
+
+**Function 3: `seq()`**
+
+* **What it does:** generates a regular sequence of numbers.
+* **Input required:** `from` (start value), `to` (end value), and either `by` (step size) or `length.out` (total number of values).
+* **Output:** `seq(from = 1, to = 10, by = 2)` returns `1 3 5 7 9` — a sequence starting at 1, ending at or before 10, with steps of 2.
+
+```{r}
+?seq
+seq(from = 1, to = 10, by = 2)
+```
+
+---
+
+# Exercise 10: Fix the Wrong Inputs
+
+**Case 1:** Wrong column name — `readcount` should be `ReadCount` (R is case-sensitive).
+
+```{r}
+counts_df <- data.frame(
+  SampleID = c("S1", "S2", "S3"),
+  ReadCount = c(1200, 850, 940)
+)
+
+mean(counts_df$ReadCount)
+```
+
+**Case 2:** Wrong argument name — `remove.na` is not an argument of `sum()`. The correct argument is `na.rm`.
+
+```{r}
+x <- c(3, 7, NA, 2, 5)
+sum(x, na.rm = TRUE)
+```
+
+**Case 3:** `genes$pvalue` — the column `pvalue` does not exist in the data frame. R returns `NULL` silently (no error, no warning). This is a common source of confusion because the code appears to "work" but silently produces missing data.
+
+```{r}
+genes <- data.frame(
+  name = c("TP53", "BRCA1"),
+  logFC = c(1.2, -0.8)
+)
+
+genes$pvalue   # returns NULL — the column does not exist
+names(genes)   # check which columns actually exist
+```
+
+---
+
+# Exercise 11: What Type Is It?
+
+Predicted and observed types:
+
+| Object | Prediction    | `class()` result |
+|--------|---------------|-----------------|
+| `a`    | `"numeric"`   | `"numeric"`     |
+| `b`    | `"character"` | `"character"`   |
+| `c`    | `"logical"`   | `"logical"`     |
+| `d`    | `"numeric"`   | `"numeric"`     |
+| `e`    | `"data.frame"`| `"data.frame"`  |
+
+```{r}
+a <- 42
+b <- "42"
+c <- TRUE
+d <- c(1, 2, 3)
+e <- data.frame(x = 1:3)
+
+class(a)
+class(b)
+class(c)
+class(d)
+class(e)
+```
+
+`sqrt(a)` works because `a` is numeric. `sqrt(b)` throws an error because `b` is a character string — `sqrt()` cannot take non-numeric input.
+
+```{r}
+sqrt(a)
+sqrt(b)
+```
+
+---
+
+# Exercise 12: Fix the Type Error
+
+**Problem:** `counts` is a character vector (each element is in quotes). `mean()` requires numeric input.
+
+```{r}
+counts <- c("10", "20", "30")
+class(counts)   # "character" — that is the problem
+```
+
+**Fix:** convert to numeric with `as.numeric()` first.
+
+```{r}
+counts <- c("10", "20", "30")
+mean(as.numeric(counts))
+```
+
+---
+
+# Exercise 13: Fix the File Path
+
+Three things to check and fix in `read.csv("Data/gene_counts.CSV")`:
+
+1. **Capitalisation of the folder name:** the folder may be called `data` (lowercase), not `Data`. File paths are case-sensitive on macOS and Linux.
+
+2. **Capitalisation of the file extension:** the file extension may be `.csv` (lowercase), not `.CSV`. Again, case-sensitive on macOS/Linux.
+
+3. **Working directory:** use `getwd()` to confirm that R is looking in the folder you expect. If not, adjust the path or change the working directory with `setwd()` or via the RStudio Files pane.
+
+```r
+getwd()   # check where R is looking
+
+# Corrected version (assuming the folder and file use the correct capitalisation):
+counts <- read.csv("data/gene_counts.csv")
+```
+
+---
+
+# Exercise 4.5: Debug the Script
+
+The original script has three errors:
+
+1. `mean(data$count)` — the column is called `counts`, not `count`.
+2. `sd(data$counts` — missing closing parenthesis `)`.
+3. `sqrt("25")` — `"25"` is a character string; `sqrt()` requires a numeric value.
+
+**Fixed script:**
+
+```{r}
+data <- data.frame(
+  gene = c("A", "B", "C"),
+  counts = c(10, 5, 7)
+)
+
+mean(data$counts)   # fix 1: correct column name
+
+sd(data$counts)     # fix 2: added closing parenthesis
+
+sqrt(25)            # fix 3: removed quotes — 25 is now numeric
+```
+
+---
+
+# Exercise 4.6: Wrong Package and Wrong Column
+
+**Problem 1:** The column is called `Age` (capital A), not `age`. Column names are case-sensitive in R.  
+**Problem 2:** `dplyr` is already loaded via `library(dplyr)`, so that is not the issue here.
+
+**Fixed script:**
+
+```{r}
+library(dplyr)
+
+patients <- data.frame(
+  PatientID = c("P1", "P2", "P3"),
+  Age = c(34, 45, 29),
+  Score = c(8.2, 6.5, 9.1)
+)
+
+filter(patients, Age > 30)   # fix: use "Age" with capital A
+```
+
+---
+
+# Exercise 4.7: Find the Error Type
+
+**Error 1:**
+```
+Error: object 'gene_counts' not found
+```
+- **Type:** Object not found (Section 3.1)
+- **Likely cause:** The variable `gene_counts` was never assigned, or it was assigned with a different name.
+- **Fix:** Define the object before using it: `gene_counts <- ...`
+
+---
+
+**Error 2:**
+```
+Error in library(DESeq2) : there is no package called 'DESeq2'
+```
+- **Type:** Package not found (Section 3.3)
+- **Likely cause:** `DESeq2` is a Bioconductor package and has not been installed.
+- **Fix:** Install via Bioconductor: `BiocManager::install("DESeq2")`, then `library(DESeq2)`.
+
+---
+
+**Error 3:**
+```
+Error in sqrt(x) : non-numeric argument to mathematical function
+```
+- **Type:** Wrong input type (Section 3.7)
+- **Likely cause:** `x` is a character or logical vector instead of numeric.
+- **Fix:** Check with `class(x)`; convert if needed: `sqrt(as.numeric(x))`.
+
+---
+
+**Error 4:**
+```
+Error: unexpected symbol in "mean(x"
+```
+- **Type:** Syntax error (Section 3.2)
+- **Likely cause:** A closing parenthesis `)` is missing, or there is an unexpected character nearby.
+- **Fix:** Complete the expression: `mean(x)`.
+
+---
+
+**Error 5:**
+```
+Error: could not find function "ggplot"
+```
+- **Type:** Function not found / missing library (Section 3.4)
+- **Likely cause:** The `ggplot2` package has not been loaded in the current session.
+- **Fix:** Add `library(ggplot2)` before calling `ggplot()`.

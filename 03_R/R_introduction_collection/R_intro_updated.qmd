@@ -1,0 +1,424 @@
+---
+title: "Introduction to R programming"
+date: last-modified
+author: 
+    - name:  "Sri Sankaran, You Zhou and Jonas Busam"
+title-block-banner: true
+format: 
+    html:
+        theme: litera
+        self-contained: true
+        embed-resources: true
+        code-fold: false
+        toc: true
+        number-sections: false
+        anchor-sections: false
+execute:
+  include: true
+  eval: false
+  echo: true
+  error: false
+editor: 
+  markdown: 
+    wrap: 100
+---
+
+# What is R?
+
+**R** is a programming language and environment commonly used for statistical computing and 
+graphics.  It compiles and runs on a wide variety of UNIX platforms, Windows and MacOS. The 
+**R** can be downloaded from [R Project](https://www.r-project.org/). 
+
+Once you have downloaded and installed R, you can run R on your computer. Besides directly running 
+it, we can also run R in an integrated working environment, e.g. **Rstudio**. The Rstudio is highly 
+recommended when you are working with R, and it can be downloaded from
+[https://posit.co/](https://posit.co/).
+
+# Why use R?
+* It is a great resource for data analysis, data visualization, data science and machine learning
+* It provides many statistical techniques (such as statistical tests, classification, clustering 
+and data reduction)
+* It is easy to draw graphs in R, like pie charts, histograms, box plot, scatter plot, etc++
+* It works on different platforms (Windows, Mac, Linux)
+* It is open-source and free
+* It has a large community support
+* It has many packages (libraries of functions) that can be used to solve different problems
+
+# What is RStudio?
+* RStudio is a integrated development environment for R. This helps programming the R code efficiently. 
+* It enhances R programming experience with features such as code compilation, graph and table preview etc.
+* Open-source and free
+
+![RStudio interface](rstudio_interface.png)
+* top-left: R scripts and files
+* bottom-left: R console. This where the code gets run 
+* top-right: Access your object, history and environments.
+* bottom-right: tree of folders, plot window , help window, packages
+
+# R as a pocket calculator
+
+It is possible to use R like a pocket calculator:    
+
+            + "plus" (addition)    
+            - "minus" (subtraction)     
+            * "times" (multiplication)      
+            / "divided by" (division)       
+            ^ "to the power of" (exponentiation)        
+            sqrt() "square root" (taking the square root)       
+            %% "Modulo" (modulo operation)      
+
+```{r}
+#| label: addition
+# addition
+5+3
+```
+             
+```{r}
+#| label: subtraction
+# subtraction
+5-3
+```
+                
+```{r}
+#| label: multiplication
+## multiplication
+5*3
+```
+
+```{r}
+#| label: division
+## division
+5/3
+```
+
+```{r}
+#| label: exponentiation
+## exponentiation
+5^3
+```
+
+```{r}
+#| label: square-root
+## taking the square root
+sqrt(9)
+```
+
+```{r}
+#| label: modulo
+## Modulo
+5%%3
+```
+
+# Logical comparison operators
+
+        < for less than  
+        > for greater than  
+        <= for less than or equal to  
+        >= for greater than or equal to  
+        == for equal to each other   
+        != not equal to each other  
+
+```{r}
+## Some examples
+5 >  3
+5 >= 6
+5 != 10
+```
+
+# Data objects
+
+## R Variables
+
+R uses variables to store data that can be accessed later by subsequent codes. They can hold various data types, from simple character string or numerics to complex data structure such as data frame, matrix, array and list. Always remember to give a meanigful variable name. Variables are created with the assignment operator `<-` or `=`. We encourage you to use `<-` operator instead of `=` for declaring variables.
+
+```{r}
+## method 1
+random_number <- 5 
+## method 2
+random_number =  5 # discouraged!
+## print out object random_number
+random_number
+```
+   
+It is possible to do calculations with the data in `random_number`.
+
+```{r}
+random_number - 1
+```
+
+## Data types
+
+Basic data types in R includes:
+
+        numeric - (10.5, 55, 787)
+        integer - (1L, 55L, 100L, where the letter "L" declares this as an integer)
+        complex - (9 + 3i, where "i" is the imaginary part)
+        character (a.k.a. string) - ("k", "R is exciting", "FALSE", "11.5")
+        logical (a.k.a. boolean) - (TRUE or FALSE)
+        We can use the class() function to check the data type of a variable:
+
+```{r}
+#| label: data-types
+
+## numeric
+x <- 10.5
+class(x)
+
+## integer
+x <- 1000L
+class(x)
+
+## complex
+x <- 9i + 3
+class(x)
+
+## character/string
+x <- "R is exciting"
+class(x)
+
+## logical/boolean
+x <- TRUE
+class(x)
+```
+
+# Data structure in R
+
+A data structure is a particular way of organizing data in a computer so that it can be used 
+effectively.        
+
+The most essential data structures used in R include:       
+1) Vectors      
+2) Lists        
+3) Dataframes       
+
+## Vectors
+
+Vector is a basic data structure in R that can hold multiple elements. It contains element of the 
+same type. The data types can be logical, numeric, character, etc. To combine the multiple of 
+items into a vector, use the `c()` function and separate the items by a comma (`,`).
+
+![R-vectors](vector.png)
+
+```{r}
+#| label: working-with-vectors
+## assign elements to vectors
+classmate <- c("John", "Lina", "Kristin")
+numbers <- c(1, 2, 3)
+## check the data type
+class(numbers)
+```
+
+The elements of a vector can be accessed using squared brackets `[]` and their index position. For instance, we retrieve the second element of the vector **classmate**.
+
+```{r}
+classmate[2]
+```
+
+When the vector is composed of numeric elements, some basic operations can be done:
+
+```{r}
+numeric_vect <- c(1, 2, 1, 10, 50)
+
+## compute the mean of the elements in the vector
+mean(numeric_vect) 
+
+## compute the sum of the elements in the vector
+sum(numeric_vect) 
+
+## compute the median of the elements in the vector
+median(numeric_vect)
+
+## add a value to all elements in the vector
+numeric_vect + 1
+```
+
+**Exercise 1**
+
+Please combine the following elements into a vector, and find out its data type.
+
+    1       2        A       B
+
+
+```{r eval=FALSE, include=FALSE}
+a <- c(1,  2,  "A",  "B", TRUE)
+class(a)
+```
+
+## Lists
+
+List is a data structure in R which can *contain many different data types*. To create a list, we 
+can use the `list()` function.
+
+![R-list](list.png)
+
+
+```{r}
+alist <- list(1, c(2, 3), "A")
+```
+
+We can access the list items by referring to its index number, inside brackets. The first item has 
+index 1, the second item has index 2, and so on.
+
+```{r}
+alist[3]
+```
+
+```{r}
+alist[2]
+```
+
+For checking out the data type in a list, we can use the `str()` function.
+
+```{r}
+str(alist)
+```
+
+## Data frame
+
+Data frames are data displayed in a format as a table. Data Frames can have different types of data 
+inside it. While the first column can be character, the second and third can be numeric or logical.
+However, each column should have the same type of data. We can use the `data.frame()` function to 
+create a data frame.
+
+![R-data-frame](dataframe.png)
+
+```{r}
+## create a data frame and assign it to a object df
+df <- data.frame(
+    Age = c(20, 21, 20),
+    classmate = classmate,
+    like_coffee = c(TRUE, TRUE, FALSE)
+)
+df
+```
+
+Use the `summary()` function we can quickly summarize the data from a data frame.
+
+```{r}
+summary(df)
+```
+
+For accessing the items in data frame, we have some different methods. We can use single square
+brackets `[ ]`, double square brackets `[[ ]]` or `$` to access columns from a data frame. 
+
+```{r}
+df[1] ## or df["Age"]
+df["classmate"]
+```
+
+```{r}
+## To access the elements in the dataframe
+df[["classmate"]]
+
+df$like_coffee
+```
+
+We can also select the row or column in a data frame like this:
+
+```{r}
+## access the row 1 in df
+df[1,]
+```
+
+```{r}
+## access the column 1 in df
+df[,1]
+```
+
+```{r}
+## access the element at row 2 and column 1 in df
+df[2,1]
+```
+
+To find out the number of rows and columns, we can use the function `nrow()` and `ncol()` or 
+`dim()` function.
+
+```{r}
+## checking how many rows are there in df
+nrow(df)
+## checking how many columns are there in df
+ncol(df)
+## checking the dimension of df
+dim(df)
+```
+
+```{r}
+## we can check the data type in the data frame with str()
+str(df)
+```
+
+### Add rows or columns
+
+For adding rows, we can use the `rbind()` function or directly assign the elements to it.
+
+```{r}
+## rbind function combines rows
+new_df <- rbind(df, c(19, "Nana", TRUE))
+df[4,] <- c(19, "Nana", TRUE)
+new_df
+```
+
+```{r}
+df
+```
+
+For adding columns, we can use `cbind()` function, `$` or `[]`.
+
+```{r}
+df$height <- c(180, 170, 165, 162)
+df <- cbind(df, weight = c(75, 60, 59, 50))
+df[,"like_star_wars"] <- c(TRUE, TRUE, TRUE, FALSE)
+
+df
+```
+
+If you would like to remove a column or row, you can use the `[]` function.
+
+```{r}
+# Remove the first row and column
+df_new <- df[-1, -1]
+df_new
+```
+
+The data frame can be subset specific criteria: 
+
+```{r}
+## select rows with Age < 20
+df[df$Age < 20, ]
+```
+
+```{r}
+## select the coffee lovers
+subset(df, like_coffee == TRUE)
+```
+
+```{r}
+## select the coffee lovers who has an Age <= 20
+df[df$Age <= 20 & df$like_coffee == TRUE, ]
+
+## select the height >= 180 or name Kristin
+df[df$classmate == "Kristin" | df$height >= 180, ]
+```
+
+**Exercise 2**
+Create a two columns data frame with these two vectors and select the rows with the `order` 
+value >= 15.
+
+```{r}
+order <- c( 6, 14, 21, 1, 3, 18, 16, 2, 12, 5, 10, 19)
+ABC <- c("F", "N", "V", "A", "C", "S", "P", "B", "L", "E", "J", "T")
+```
+
+
+```{r eval=FALSE, include=FALSE}
+df <- data.frame(order, ABC)
+df[df$order >= 15,]
+```
+
+# Session Information
+
+```{r}
+sessioninfo::session_info()
+```
+
+
