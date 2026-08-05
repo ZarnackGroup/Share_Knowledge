@@ -1,0 +1,378 @@
+---
+title: "Visualizing data with ggplot2"
+date: last-modified
+author: 
+- name:  "Natascha Kleinermanns & Zarnack group"
+title-block-banner: true
+format: 
+    html:
+        theme: litera
+        self-contained: true
+        code-fold: false
+        toc: true
+        number-sections: false
+        anchor-sections: false
+        fig-format: png
+        embed-resources: true
+execute:
+  include: true
+  eval: true
+  echo: true
+  error: false
+  message: false
+  warning: false
+editor: 
+  markdown: 
+    wrap: 100
+---
+# What is ggplot2 - The Basics
+
+`ggplot2` is a package for creating the advanced graphics in R. You provide the data, tell ggplot2 
+how to map variables to aesthetics, what graphical primitives to use, and it takes care of the 
+details. The ggplot2 package offers a modular structure that allows you to generate plots layer by layer.
+
+## Installing ggplot2
+
+For installing packages, we can use the `install.packages()` function. After the package installation, we need to load the package into our R environment, so we can use 
+all the functions inside the package.
+
+```{r, eval=FALSE}
+install.packages("ggplot2")
+```
+```{r}
+## load the ggplot2 package
+library(ggplot2)
+```
+
+## The basic structure of ggplot2
+
+The most important function is `ggplot()` that initializes a ggplot object in which we declare the input data frame and set the plot aesthetics. The aesthetics are defined within `ggplot()` by using `aes()`. Aesthetics tell ggplot which columns contain the values on the x- and y-axis or which column should be used as a color or fill. After we have initialized a ggplot object with `ggplot()` we can add layers with the plus sign `+`. Components like points, lines, bars etc. can be added to a plot with `geom_*()` functions. There are further functions that can be used to adjust the x- and y-axis, to set labels or to set a user-defined color-scale. Here are some examples of layers:
+
+-   geom_point() for scatter plots
+-   geom_line() for line plots
+-   geom_col() for bar charts
+-   geom_histogram() for histograms
+-   geom_density() for density plots
+-   facet_wrap() for dividing a plot in multiple subplots
+-   labs() for renaming and adding axis labels and titles
+-   scale_color_manual() for setting a user defined color-scale
+
+For a comprehensive list of `geom_*()` and other functions see: 
+[https://ggplot2.tidyverse.org/reference/](https://ggplot2.tidyverse.org/reference/).
+
+Besides, the cheetsheet of `ggplot2` can be downloaded as follow: 
+[https://github.com/rstudio/cheatsheets/blob/main/data-visualization-2.1.pdf](https://github.com/rstudio/cheatsheets/blob/main/data-visualization-2.1.pdf). 
+**HISS~**
+
+# How to make simple plots
+
+For showing how the `ggplot()` works, we will use the ggplot2 embedded data set `mpg` as a test 
+data set. This data is about technical spec of cars. Here are some explanations for the 
+attributions in this data set:    
+1) manufacturer   
+2) model > model name   
+3) displ > engine displacement, in liters or size of engine   
+4) year > year of manufacture   
+5) cyl > number of cylinders    
+6) trans > type of transmission   
+7) drv > f = front-wheel drive, r = rear wheel drive, 4 = 4 wheel drive   
+8) cty > city miles per gallon    
+9) hwy > highway miles per gallon or efficiency   
+10) fl > fuel type    
+11) class > "type" of car   
+
+```{r}
+mpg
+## If you want to look at the data in RStudio assign mpg in an object
+mpg <- mpg
+```
+
+## Scatter plot
+
+Here is an example for making a scatter plot.
+
+```{r}
+ggplot(data = mpg, aes(x = displ, ## value for x axis is displ
+                       y = hwy,   ## value for y axis is hwy
+                       color = class)) + ## color points by their class
+  geom_point() ## the function for making a scatter plot
+```
+
+Shape the shape by the fuel type (fl).
+
+```{r}
+ggplot(data = mpg, aes(x = displ, y = hwy, color = class, shape = fl)) + 
+  geom_point() 
+```
+
+Add regression line to all the points.
+
+```{r}
+ggplot(data = mpg, aes(x = displ, y = hwy)) + 
+  geom_point() +
+  geom_smooth(method='lm', formula=y~x) ## the function to add a regression line
+```
+
+As you can see up there, the grammar of `ggplot2` is simple. You can just input the data set, select 
+`aesthetic` then add the plot that you want to make layer by layer with `+`.
+
+##  Histogram
+
+A histogram is an approximate representation of the distribution of numerical data. 
+
+```{r}
+## here we use a histogram to show the distribution of highway miles per gallon or efficiency
+ggplot(data=mpg,aes(x=hwy)) + geom_histogram()
+```
+
+## Density plot
+
+A density plot shows the distribution of numerical data.
+
+```{r}
+## here we use a density plot to show the distribution of the efficiency across fuel types
+ggplot(data=mpg, aes(x=hwy, color = fl)) + geom_density()
+```
+
+## Barplot
+
+The barplot can be used to compare the numbers among different groups.
+
+```{r}
+## here we use a barplot to show different manufactures
+ggplot(data = mpg, aes(x = manufacturer)) + 
+    geom_bar() + 
+    theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) ## this command adjust the angle of text at the x-axis
+```
+
+## Boxplot
+
+In descriptive statistics, a boxplot is a method for graphically demonstrating the locality, 
+spread and skewness groups of numerical data through their quartiles. 
+
+```{r}
+## a boxplot for the hwy 
+ggplot(mpg, aes(x = class, y  = hwy)) + 
+    geom_boxplot()
+```
+
+## Violin plot
+
+Another graphics useful to observe the distribution of data is a violin plot, a sort density plot 
+that is rotated and placed on each side, to show the distribution shape of the data.
+
+```{r}
+## a violin plot for the hwy
+ggplot(mpg, aes(x = class, y  = hwy)) + 
+  geom_violin()  + 
+  geom_boxplot(width = 0.1)
+```
+## Beeswarm plot
+Yet another way to visualize a plot like this is the beeswarm method.
+
+This can be helpful to show the number of observations per box/violin.
+
+```{r}
+library(ggbeeswarm)
+ggplot(mpg, aes(x = class, y  = hwy)) + 
+  geom_quasirandom()
+```
+
+# How to customize plots
+
+Besides make easy plots with the defaults, we can also customize almost everything in the plot, 
+e.g. the font size, color, text, labels and so on.
+
+To explore the customize plot, let's first try to change the color in our violin plot. We can assign the plot in an object. e.g. `p1` for later usage.
+
+```{r}
+## assign the plot in an object for the later usage
+p1 <- ggplot(mpg, aes(x = class, y  = hwy)) + 
+    geom_violin(color = "blue")  + 
+    geom_boxplot(width = 0.1, fill = "orange")
+p1 ## calling the plot from the global environment
+```
+
+Now let's try to add a title to the plot and remove the label on x-axis.
+
+```{r}
+p1 + labs(title = "Box violin plot",
+          x = NULL)
+```
+
+Besides manually change all the parameters and try to make the plot looks nicer, in the `ggplot2` 
+package, they actually offer different themes which allow us to quickly change the style of the plot.
+
+```{r}
+p1 + theme_bw()
+```
+
+```{r}
+p1 + theme_dark()
+```
+If you are interested in select a nice theme for your future plots, you can check out the following 
+link [https://ggplot2.tidyverse.org/reference/ggtheme.html](https://ggplot2.tidyverse.org/reference/ggtheme.html).
+
+We can also customize our theme further. There are many arguments with which you can change position, color and size the elements individually. [https://ggplot2.tidyverse.org/reference/theme.html](https://ggplot2.tidyverse.org/reference/theme.html)
+
+```{r}
+p1 + theme_dark() +
+  theme(
+  # get rid of panel grids
+  panel.grid.major = element_blank(),
+  panel.grid.minor = element_blank()
+  )
+```
+
+It is also possible to filter your data directly in the ggplot function.
+
+```{r}
+p2 <- ggplot(data = mpg[mpg$displ <= 6, ], aes(x = displ, y = hwy, colour = year)) + 
+  geom_point()
+p2
+```
+
+There are multiple `scale_color_*` functions which can be used to define colors for the plot. It is important to choose a function that fits with data the color is mapped onto. Some functions work with continuous values while others work with discrete values.
+
+```{r}
+ggplot(data = mpg[mpg$displ <= 6, ], aes(x = displ, y = hwy, colour = year)) + 
+  geom_point() +
+  # since year is an integer column the values are treated as if on a continuous scale even though there are only two numbers
+  scale_colour_gradient( low = "steelblue", high = "firebrick")
+
+ggplot(data = mpg[mpg$displ <= 6, ], aes(x = displ, y = hwy, colour = fl)) + 
+  geom_point() +
+  scale_colour_manual(values = c("p" = "blue", "r" = "red", "e" = "green", "d" = "yellow", "c" = "magenta"))
+```
+
+## Making subplots
+
+`ggplot2` offers a function `facet_wrap` that splits the data into multiple subplots.
+
+```{r}
+p3 <- ggplot(data = mpg, aes(x = displ, y = hwy)) + 
+        geom_point() +
+        geom_smooth(method='lm', formula=y~x)
+p3
+
+p3 + facet_wrap(~fl)
+p3 + facet_wrap(~fl, scales = "free")
+```
+
+As you can see the two plots share the same x- and y-axis. We can set individual axis for each plot using `scales = "free"`. Take notice that the regression line is calculated and drawn for each subplot individually using only the data belonging to the subplot.
+
+If you want to display the data from multiple columns in a faceted structure you can use `melt()` from the `reshape2` package to put all column names you want to show in one single column. With the arguments `id.vars` and `measure.vars` you can choose which columns to keep and which columns to melt.
+
+```{r}
+#| eval: false
+install.packages("reshape2")
+```
+```{r}
+library(reshape2)
+```
+
+```{r}
+mpg_melt <- melt(mpg, id.vars = c("cty", "hwy", "displ"), measure.vars = c("model", "manufacturer"))
+
+ggplot(mpg_melt, aes(x=hwy, y=value)) +
+  geom_point() +
+  facet_wrap(~variable, scales="free_y") +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1))
+```
+
+# Exercises
+
+1) Use a bar chart to find out the which `audi` `model` has the highest frequency in the `mpg` data 
+set.    
+2) Use a scatter plot and regression line to find out whether there is a relation between `cty` and `hwy`.
+3) Use a density plot to show the distribution of `hwy` of each `fl`for each `class`. 
+4) Please try to answer the question: which manufacture produce the low energy consumption (`cty`) `midsize` cars?
+
+```{r include=FALSE}
+## Answer to question 1
+ggplot(mpg[mpg$manufacturer == "audi",], 
+       aes(x = model)) + 
+  geom_bar() + 
+  geom_label(stat='count', aes(label=..count..), vjust=0.5) + 
+  theme_bw()
+```
+
+```{r include=FALSE}
+## Answer to question 2
+ggplot(mpg, 
+       aes(x = cty, y = hwy)) + 
+  geom_point() + 
+  geom_smooth(method = "lm") +
+  theme_bw()
+```
+ 
+```{r include=FALSE}
+## Answer to question 3
+## Density plot like above with facet_wrap
+ggplot(data=mpg, aes(x=hwy, color = fl)) +
+  geom_density() +
+  facet_wrap(~class)
+```
+ 
+```{r include=FALSE}
+## Answer to question 4
+ggplot(mpg[mpg$class == "midsize",],
+       aes(x = manufacturer, y = cty)) + 
+  geom_boxplot()  + 
+  theme_bw()
+```
+
+# Bonus exercise: Real World Applications
+
+```{r}
+library(tidyverse)
+library(kableExtra) # useful for making tables
+```
+
+1) Choose 2 data sets and make 3 plots for each of them.
+2) Customize the plots
+
+## Median age per district
+
+[Download here!](https://opendata.wuerzburg.de/explore/dataset/stadtbezirke_medianalter/table/)
+
+```{r}
+age <- read.table("data/stadtbezirke_medianalter.csv", sep=";", header=T)
+head(age) %>% kable() %>% kable_styling("striped") %>% scroll_box(width="100%")
+```
+
+## Trees in Würzburg
+
+[Download here!](https://opendata.wuerzburg.de/explore/dataset/baumkataster_stadt_wuerzburg/table/)
+
+```{r}
+trees <- read.table("data/baumkataster_stadt_wuerzburg.csv", sep=";", header=T)
+head(trees) %>% kable() %>% kable_styling("striped") %>% scroll_box(width="100%")
+```
+
+## Weather in Gerbrunn
+
+[Download here!](https://opendata.wuerzburg.de/explore/dataset/wetterstation-gerbrunn/table/)
+
+```{r}
+weather <- read.table("data/wetterstation-gerbrunn.csv", sep=";", header=T)
+head(weather) %>% kable() %>% kable_styling("striped") %>% scroll_box(width="100%")
+```
+
+## Pedestrian counts
+
+[Download here!](https://opendata.wuerzburg.de/explore/dataset/passantenzaehlung_stundendaten/table/)
+
+```{r}
+pedestrians <- read.table("data/passantenzaehlung_stundendaten.csv", sep=";", header=T) %>% select(!c(GeoShape, Zonen))
+head(pedestrians) %>% kable() %>% kable_styling("striped") %>% scroll_box(width="100%")
+```
+
+## Bicycle counts
+
+[Download here!](https://opendata.wuerzburg.de/explore/dataset/fahrradzaehlung-tagesdaten-alle-zaehlstationen/table/)
+
+```{r}
+bikes <- read.table("data/fahrradzaehlung-tagesdaten-alle-zaehlstationen.csv", sep=";", header=T)
+head(bikes) %>% kable() %>% kable_styling("striped") %>% scroll_box(width="100%")
+```

@@ -1,0 +1,408 @@
+---
+title: "Manipulating data with tidyverse"
+date: last-modified
+author: 
+- name:  "Natascha Kleinermanns & Zarnack group"
+title-block-banner: true
+format: 
+    html:
+        theme: litera
+        embed-resources: true
+        fig-format: png
+        self-contained: true
+        code-fold: false
+        toc: true
+        number-sections: false
+        anchor-sections: false
+execute:
+  include: true
+  eval: true
+  echo: true
+  error: false
+  warning: false
+  message: false
+editor: 
+  markdown: 
+    wrap: 100
+---
+
+# What is tidyverse
+
+Tidyverse is the name for a collection of R packages that are useful for data science. The most important ones are:
+
+-   `tidyr` which helps you to clean up your data
+-   `dplyr` which offers a grammar for data manipulation
+-   `ggplot2` which helps you to create graphics that can be customized to your needs
+
+You can find more information on: <https://tidyverse.org/packages/>.
+
+First we need to install `tidyverse`, which will install all our included packages.
+
+```{r, eval=FALSE}
+install.packages("tidyverse")
+```
+
+Afterwards we need to load the packages we want
+
+```{r, eval=FALSE}
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+```
+
+In this case instead of loading all packages separately, we can simply call `library(tidyverse)`. This will load 9 core packages (`tidyr`, `dplyr`, `purrr`, `readr`, `ggplot2`, `stringr`, `lubridate`, `forcats`, `tibble`) of tidyverse.
+
+```{r, message=TRUE}
+library(tidyverse)
+library(kableExtra)
+```
+
+To demonstrate an practice using tidyverse operations we will use publicly available data sets.
+
+```{r, eval=FALSE}
+install.packages("datasets")
+```
+
+We are using the airquality data set.
+
+```{r}
+data("airquality")
+airquality %>% kable() %>% kable_styling("striped") %>% scroll_box(height = "400px")
+```
+
+# Basic tidyverse functions
+
+## filter
+
+We can use the function `filter()` to filter rows.
+
+```{r}
+airquality_may <- filter(airquality, Month == 5)
+airquality_may %>% kable() %>% kable_styling("striped") %>% scroll_box(height = "400px")
+```
+
+It is possible to combine multiple conditions.
+
+```{r}
+windy_may_days <- filter(airquality, Month == 5 & Wind > 10)
+windy_may_days %>% kable() %>% kable_styling("striped") %>% scroll_box(height = "400px")
+```
+
+We can also filter for everything except our condition
+
+```{r}
+filter(airquality, Month != 5) %>% kable() %>% kable_styling("striped") %>% scroll_box(height = "400px")
+```
+
+If we want to filter for multiple values within a column we can do this with logical operators
+
+```{r}
+filter(airquality, Month == 6 | Month == 8) %>% kable() %>% kable_styling("striped") %>% scroll_box(height = "400px")
+```
+
+or we can use the `%in%` operator.
+
+```{r}
+filter(airquality, Month %in% c(6, 8)) %>% kable() %>% kable_styling("striped") %>% scroll_box(height = "400px")
+```
+
+This operator can be negated as well.
+
+```{r}
+# it is important to place "!" right
+# if you put directly in front of %in% or c() you will get an error
+filter(airquality, !(Month %in% c(6, 8))) %>% kable() %>% kable_styling("striped") %>% scroll_box(height = "400px")
+```
+
+### Exercise 1
+
+Filter for data from september.
+
+```{r, include=FALSE}
+# Solution exercise 1 filter
+filter(airquality, Month == 9) %>% kable() %>% kable_styling("striped") %>% scroll_box(height = "400px")
+```
+
+## arrange
+
+We can also arrange the rows in different orders. Choose a column an whether to arrange the rows in ascending or descending order.
+
+```{r}
+# arranging in ascending order is the default and does not need another function
+arrange(airquality, Temp) %>% kable() %>% kable_styling("striped") %>% scroll_box(height = "400px")
+# for arranging in descending order use desc()
+arrange(airquality, desc(Temp)) %>% kable() %>% kable_styling("striped") %>% scroll_box(height = "400px")
+```
+
+### Exercise 2
+
+Arrange the days in may in ascending order of wind strength.
+
+```{r, include=FALSE}
+arrange(airquality_may, Wind) %>% kable() %>% kable_styling("striped") %>% scroll_box(height = "400px")
+```
+
+## select
+
+With `select()` we can select columns.
+
+```{r}
+# this will keep only the columns Wind, Day and Temp
+windy_may_days <- select(windy_may_days, c(Wind, Day, Temp))
+windy_may_days %>% kable() %>% kable_styling("striped") %>% scroll_box(height = "400px")
+```
+
+We can also select columns we don't want, by placing `-` before our vector. This will keep all columns but Wind.
+
+```{r}
+windy_may_days <- select(windy_may_days, -c(Wind))
+windy_may_days %>% kable() %>% kable_styling("striped") %>% scroll_box(height = "400px")
+```
+
+### Exercise 3
+
+Select Ozone and Solar.R from airquality.
+
+```{r, include=FALSE}
+select(airquality, c(Ozone, Solar.R)) %>% kable() %>% kable_styling("striped") %>% scroll_box(height = "400px")
+```
+
+## mutate
+
+`dplyr` also allows us to make new columns with `mutate()`, either with mathematical calculations or with logical operators.
+
+```{r}
+## Converting Fahrenheit to Celsius
+airquality <- mutate(airquality, Temp_C = (Temp-32)*5/9)
+airquality %>% kable() %>% kable_styling("striped") %>% scroll_box(height = "400px")
+## Defining days with Wind >= 10 as days with strong wind
+airquality <- mutate(airquality, strong_wind = case_when(
+  Wind >=10 ~ T,
+  T~F
+))
+airquality %>% kable() %>% kable_styling("striped") %>% scroll_box(height = "400px")
+```
+
+### Exercise 4
+
+Make another column high_temp for temperatures equal to or above 25°C.
+
+```{r, include=FALSE}
+mutate(airquality, high_temp = case_when(
+  Temp_C >= 25 ~ T,
+  T~F
+)) %>% kable() %>% kable_styling("striped") %>% scroll_box(height = "400px")
+```
+
+## rename and relocate
+
+We can rename and reorder columns, with `rename()` and `reorder()`. The syntax for renaming is new_name = old_name.
+
+```{r}
+airquality <- rename(airquality, Temp_F = Temp)
+airquality %>% kable() %>% kable_styling("striped") %>% scroll_box(height = "400px")
+```
+
+When reordering use `.before` or `.after` to put your moving column directly before or after another column.
+
+```{r}
+airquality <- relocate(airquality, Temp_C, .after = Temp_F)
+airquality %>% kable() %>% kable_styling("striped") %>% scroll_box(height = "400px")
+```
+
+### Exercise 5
+
+Move the column wind between Ozone and Solar.R
+
+```{r, include=FALSE}
+relocate(airquality, Wind, .before = Solar.R) %>% kable() %>% kable_styling("striped") %>% scroll_box(height = "400px")
+```
+
+## summerize
+
+The dplyr package offers a function called `summarize()`. It works a bit differently than `summary()` from base R. For example applying it on our data frame without further specification returns an empty data frame.
+
+```{r}
+base::summary(airquality)
+dplyr::summarize(airquality)
+```
+
+When using summarize we choose a column to summarize and a function to summarize that column with.
+
+```{r}
+summarize(airquality, mean(Temp_C), mean(Temp_F), median(Temp_C), , max(Temp_C), sum(strong_wind))
+```
+
+If we want to do the same operation on multiple columns we can use `across()`.
+
+```{r}
+summarize(airquality, across(c(Temp_C, Temp_F), mean))
+```
+
+We can also give names to our summary columns.
+
+```{r}
+summarize(airquality, mean = mean(Temp_C), median = median(Temp_C))
+```
+
+In the case that our data may contain NA values we can use the `na.rm =` argument. If there are no NAs this argument does not change the results.
+
+```{r}
+summarize(airquality, across(c(Temp_C, Temp_F), mean, na.rm = TRUE))
+```
+
+### Exercise 6
+
+Summarize the mean Solar.R and Ozone
+
+```{r, include=FALSE}
+summarize(airquality, across(c(Ozone, Solar.R), mean, na.rm = TRUE))
+```
+
+## The pipe operator
+
+The tidyverse package offers a pipe operator `%>%`, that can be used to make a chain of functions. When using `%>%` the data is passed from one function to the next along the pipeline.
+
+```{r}
+airquality_may <- airquality_may %>%
+  mutate(Temp_C = (Temp-32)*5/9) %>% 
+  mutate(strong_wind = case_when(
+    Wind >=10 ~ T,
+    T~F
+  )) %>%
+  rename(Temp_F = Temp) %>%
+  relocate(Temp_C, .after = Temp_F)
+
+airquality_may %>% kable() %>% kable_styling("striped") %>% scroll_box(height = "400px")
+```
+
+The piping operator is also helpful for adjusting our `summerize()` function.
+
+```{r}
+airquality %>% 
+  ## we can use a column to split our data in different groups first
+  group_by(Month) %>%
+  ## and then specify which columns we want to summarize
+  summarize(across(c(Temp_C, Temp_F), mean)) %>% 
+  # this function stops any grouping
+  # it is used to explicitly make sure our df goes back to an ungrouped state
+  ungroup()
+```
+
+### Exercise 7
+
+Make a pipeline to calculate the mean Wind and Solar.R in june.
+
+```{r, include=FALSE}
+airquality %>%
+  filter(Month == 6) %>%
+  summarize(mean(Wind), mean(Solar.R))
+```
+
+# The melt function
+
+`reshape2` is another useful package next to tidyverse. It offers the `melt()` function, which will melt all columns together. This results in a data frame with one variable column with the former column names and one value column with the former column values. With the argument `id.vars =` we can exclude columns from being melted and with `measure.vars =` we can specifically collect columns to be melted. With `na.rm =` we can choose whether to keep rows where the value is NA or drop them.
+
+```{r eval=FALSE}
+install.packages("reshape2")
+```
+```{r}
+library(reshape2)
+```
+
+```{r}
+# if measure.vars is not specified all columns are melted, except the ones selected by id.vars
+air_melt <- melt(airquality, id.vars = c("Month", "Day"), variable.name = "air_factor", value.name = "measured")
+air_melt %>% kable() %>% kable_styling("striped") %>% scroll_box(height = "400px")
+```
+
+### Exercise 8
+
+Melt the Ozone, Solar.R and Wind columns in airquality_may.
+
+```{r include=FALSE}
+may_melt <- melt(airquality_may, measure.vars = c("Ozone", "Solar.R", "Wind"))
+may_melt %>% kable() %>% kable_styling("striped") %>% scroll_box(height = "400px")
+```
+
+# Excercises Tidyverse
+
+1) What is the hottest day in each month?
+
+```{r, include=FALSE}
+airquality %>%
+  group_by(Month) %>%
+  summarize(max(Temp_F))
+```
+
+2) Add a column hot_and_windy
+
+```{r, include=FALSE}
+airquality <- airquality %>%
+  mutate(hot_and_windy = case_when(
+    strong_wind == TRUE & Temp_C >= 25 ~ TRUE,
+    T~F
+  ))
+airquality %>% kable() %>% kable_styling("striped") %>% scroll_box(height = "400px")
+```
+
+3) Sort days with strong wind after temperature in ascending order
+
+```{r, include=FALSE}
+airquality %>%
+  filter(strong_wind) %>%
+  arrange(Temp_C) %>% kable() %>% kable_styling("striped") %>% scroll_box(height = "400px")
+```
+
+# Bonus Excercise Tidyverse & ggplot2
+1)  Plot the wind on each day in may (Month 5) and color wind intensities above 10 blue
+
+```{r include=FALSE}
+ggplot(airquality[airquality$Month==5,], aes(x=Day, y=Wind, fill = strong_wind))+
+  geom_col() +
+  scale_fill_manual(values =c("grey", "blue"))
+  
+```
+
+3)  Use facet_wrap to plot the wind in each month
+
+```{r include=FALSE}
+ggplot(airquality, aes(x=Day, y=Wind, fill = strong_wind))+
+  geom_col() +
+  scale_fill_manual(values =c("grey", "blue")) +
+  facet_wrap(~Month)
+```
+
+4)  Plot only ozone, solar.r wind and Temp_C eafor month 5 as facets of the same plot
+
+```{r include=FALSE}
+melt_df <- melt(airquality, id.vars = c("Month", "Day"), measure.vars = c("Ozone", "Solar.R", "Temp_C", "Wind"))
+ggplot(melt_df[melt_df$Month == 5, ], aes(x = Day, y = value)) +
+  geom_point() +
+  geom_line() +
+  facet_wrap(~variable, scales = "free_y")
+```
+
+5)  Make a plot with panels for each condition and month with `facet_grid()`.
+
+```{r include=FALSE}
+ggplot(melt_df, aes(x = Day, y = value)) +
+  geom_point() +
+  geom_line() +
+  facet_grid(variable~Month, scales = "free")
+```
+
+6)  Plot the temperatures of each month and color by the temperature (warmest red, coldest blue)
+
+```{r include=FALSE}
+ggplot(airquality, aes(x=Day, y=Temp_C, fill = Temp_C))+
+  geom_col()+
+  facet_wrap(~Month, ncol = 5)+
+  scale_fill_gradient(low="blue", high="red")
+```
+
+# Session info
+
+```{r}
+sessionInfo()
+```
